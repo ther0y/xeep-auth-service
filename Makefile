@@ -1,5 +1,5 @@
 # Build target
-BINARY_NAME = xeep-auth
+BINARY_NAME = xeep-auth-service
 BINARY_PATH = ./target
 BINARY = $(BINARY_PATH)/$(BINARY_NAME)
 
