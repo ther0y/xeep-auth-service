@@ -1,0 +1,138 @@
+syntax = "proto3";
+option go_package = "github.com/ther0y/xeep-auth-service/auther";
+
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string phone = 4;
+  string sms_otp = 5;
+  string email_otp = 6;
+  bool is_email_verified = 7;
+  bool is_phone_verified = 8;
+  string salt = 9;
+  string password = 10;
+  string avatar = 11;
+  repeated Session sessions = 12;
+  int64 created_at = 13;
+  int64 updated_at = 14;
+  int64 deleted_at = 15;
+}
+
+message AuthenticationData {
+  string id = 1;
+  string accessToken = 2;
+  string refreshToken = 3;
+}
+
+message Session {
+  string id = 1;
+  string key = 2;
+  string ip = 3;
+  string deviceId = 4;
+  string device = 5;
+  string userId = 6;
+  string created_at = 7;
+  string updated_at = 8;
+  string deleted_at = 9;
+  string issued_at = 10;
+}
+
+message LoginRequest {
+  string identifier = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  AuthenticationData authenticationData = 1;
+}
+
+message LogoutRequest {
+  string refreshToken = 1;
+  string id = 2;
+}
+
+message IsUniqueUserIdentifierRequest {
+  string identifier = 1;
+}
+
+message IsUniqueUserIdentifierResponse {
+  bool isUnique = 1;
+}
+
+message RefreshRequest {
+  string token = 1;
+}
+
+message RefreshResponse {
+  AuthenticationData authenticationData = 1;
+}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string phone = 3;
+  string email = 4;
+  string otpValidationId = 5;
+}
+
+message RegisterResponse {
+  AuthenticationData authenticationData = 1;
+}
+
+message SessionsRequest {
+  string id = 1;
+}
+
+message SessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message SendSmSOTPRequest {
+  string phone = 1;
+}
+
+message SendEmailOTPRequest {
+  string email = 1;
+}
+
+message SuccessResponse {
+  bool success = 1;
+}
+
+message VerifySmsOtpRequest {
+  string phone = 1;
+  string otp = 2;
+}
+
+message VerifyEmailOtpRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+message OTPValidationResponse {
+  string validationID = 1;
+  bool success = 2;
+}
+
+service Auther {
+  rpc IsUniqueUserIdentifier(IsUniqueUserIdentifierRequest) returns (IsUniqueUserIdentifierResponse);
+
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc LogoutToken(LogoutRequest) returns (SuccessResponse);
+  rpc LogoutAll(LogoutRequest) returns (SuccessResponse);
+
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  rpc Sessions(SessionsRequest) returns (SessionsResponse);
+
+  rpc Profile(User) returns (User);
+
+  rpc SendSmSOTP(SendSmSOTPRequest) returns (SuccessResponse);
+  rpc VerifySmSOTP(VerifySmsOtpRequest) returns (SuccessResponse);
+
+  rpc SendEmailOTP(SendEmailOTPRequest) returns (OTPValidationResponse);
+  rpc VerifyEmailOTP(VerifyEmailOtpRequest) returns (OTPValidationResponse);
+}
+
