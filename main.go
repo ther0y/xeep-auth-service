@@ -1,26 +1,12 @@
 package main
 
 import (
-	"context"
 	"github.com/ther0y/xeep-auth-service/auther"
+	autherservice "github.com/ther0y/xeep-auth-service/service"
 	"google.golang.org/grpc"
 	"log"
 	"net"
 )
-
-type server struct {
-	auther.UnimplementedAutherServer
-}
-
-func (s *server) Login(ctx context.Context, req *auther.LoginRequest) (*auther.LoginResponse, error) {
-	return &auther.LoginResponse{
-		AuthenticationData: &auther.AuthenticationData{
-			Id:           "",
-			AccessToken:  "",
-			RefreshToken: "",
-		},
-	}, nil
-}
 
 func main() {
 	lis, err := net.Listen("tcp", ":8089")
@@ -30,7 +16,7 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	service := &server{}
+	service := &autherservice.Service{}
 
 	auther.RegisterAutherServer(s, service)
 
