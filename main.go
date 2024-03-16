@@ -1,26 +1,35 @@
 package main
 
 import (
-	"github.com/ther0y/xeep-auth-service/auther"
-	autherservice "github.com/ther0y/xeep-auth-service/service"
-	"google.golang.org/grpc"
+	"fmt"
 	"log"
-	"net"
+	"os"
+
+	"github.com/joho/godotenv"
+	"github.com/ther0y/xeep-auth-service/internal/database"
+	"github.com/ther0y/xeep-auth-service/internal/server"
 )
 
 func main() {
-	lis, err := net.Listen("tcp", ":8089")
-
+	err := godotenv.Load(".env.local")
 	if err != nil {
-		log.Fatalf("Failed to bind to port 8089 %s", err)
+		log.Fatalf("Error loading .env file")
 	}
 
-	s := grpc.NewServer()
-	service := &autherservice.Service{}
+	err = database.Init(os.Getenv("MONGO_URI"), os.Getenv("MONGO_DATABASE"))
+	if err != nil {
+		log.Fatalf("Failed to connect to database %s", err)
+	}
+	fmt.Println("Connected to mongoDB")
 
-	auther.RegisterAutherServer(s, service)
+	defer func() {
+		err := database.Close()
+		if err != nil {
+			log.Fatalf("Failed to close database connection %s", err)
+		}
+	}()
 
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve %s", err)
+	if err := server.Init(os.Getenv("GRPC_PORT")); err != nil {
+		log.Printf("Failed to start server %s", err)
 	}
 }

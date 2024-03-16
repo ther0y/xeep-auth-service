@@ -1,4 +1,4 @@
-package autherservice
+package handler
 
 import (
 	"github.com/ther0y/xeep-auth-service/auther"

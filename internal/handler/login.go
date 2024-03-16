@@ -1,4 +1,4 @@
-package autherservice
+package handler
 
 import (
 	"context"
