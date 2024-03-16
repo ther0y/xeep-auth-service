@@ -11,6 +11,7 @@ import (
 	"github.com/ther0y/xeep-auth-service/internal/utils"
 	"github.com/ther0y/xeep-auth-service/internal/validator"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 )
 
@@ -40,12 +41,16 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 
 	u, err := userRepo.InsertUser(context.Background(), newUser)
 	if err != nil {
-		return nil, err
+		if mongo.IsDuplicateKeyError(err) {
+			return nil, alreadyExistsError("identifier")
+		}
+
+		return nil, internalError(err.Error())
 	}
 
 	tokens, err := u.GenerateTokens()
 	if err != nil {
-		return nil, err
+		return nil, internalError(err.Error())
 	}
 
 	return &auther.RegisterResponse{

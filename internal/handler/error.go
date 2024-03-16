@@ -35,3 +35,7 @@ func unauthenticatedError(msg string) error {
 func internalError(msg string) error {
 	return status.Error(codes.Internal, msg)
 }
+
+func alreadyExistsError(field string) error {
+	return status.Error(codes.AlreadyExists, fmt.Sprintf("%s already exists", field))
+}

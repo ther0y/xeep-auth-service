@@ -27,10 +27,10 @@ message Session {
   string deviceId = 4;
   string device = 5;
   string userId = 6;
-  string created_at = 7;
-  string updated_at = 8;
-  string deleted_at = 9;
-  string issued_at = 10;
+  int64 created_at = 7;
+  int64 updated_at = 8;
+  int64 deleted_at = 9;
+  int64 issued_at = 10;
 }
 
 message LoginRequest {
