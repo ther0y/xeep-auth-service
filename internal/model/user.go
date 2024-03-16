@@ -10,6 +10,7 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
 	"github.com/ther0y/xeep-auth-service/auther"
+	"github.com/ther0y/xeep-auth-service/internal/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -124,4 +125,13 @@ func (u *User) GenerateTokens() (*UserTokens, error) {
 		AccessToken:  authToken,
 		RefreshToken: refreshToken,
 	}, nil
+}
+
+func (u *User) ComparePassword(password string) (bool, error) {
+	hashedPassword, err := utils.HashPasswordWithSalt(password, u.Salt)
+	if err != nil {
+		return false, err
+	}
+
+	return hashedPassword == u.Password, nil
 }

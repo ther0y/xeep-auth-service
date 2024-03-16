@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/ther0y/xeep-auth-service/auther"
@@ -23,6 +24,8 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 
 	normalizedPhone := utils.NormalizePhone(req.Phone)
 	passwordHash, salt := utils.HashPassword(req.Password)
+
+	fmt.Println("salt: ", salt)
 
 	newUser := &model.User{
 		ID:        primitive.NewObjectID(),

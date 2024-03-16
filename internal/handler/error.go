@@ -27,3 +27,11 @@ func invalidArgumentError(violations []*errdetails.BadRequest_FieldViolation) er
 
 	return statusDetails.Err()
 }
+
+func unauthenticatedError(msg string) error {
+	return status.Error(codes.Unauthenticated, msg)
+}
+
+func internalError(msg string) error {
+	return status.Error(codes.Internal, msg)
+}

@@ -2,10 +2,12 @@ package server
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/ther0y/xeep-auth-service/auther"
 	autherservice "github.com/ther0y/xeep-auth-service/internal/handler"
 	"google.golang.org/grpc"
-	"net"
+	"google.golang.org/grpc/reflection"
 )
 
 func Init(port string) error {
@@ -22,6 +24,8 @@ func Init(port string) error {
 	auther.RegisterAutherServer(s, service)
 
 	fmt.Println("Server started at " + address)
+
+	reflection.Register(s)
 
 	if err := s.Serve(lis); err != nil {
 		return err
