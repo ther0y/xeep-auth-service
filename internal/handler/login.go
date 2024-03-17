@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ther0y/xeep-auth-service/auther"
-	"github.com/ther0y/xeep-auth-service/internal/database/repositories"
+	"github.com/ther0y/xeep-auth-service/internal/model"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 )
 
@@ -14,9 +14,8 @@ func (s *Service) Login(ctx context.Context, req *auther.LoginRequest) (*auther.
 		return nil, invalidArgumentError(violations)
 	}
 
-	userRepo := repositories.NewUserRepository()
-
-	user, err := userRepo.FindByIdentifier(ctx, req.Identifier)
+	user := model.User{}
+	err := user.FindByIdentifier(ctx, req.Identifier)
 	if err != nil {
 		if err.Error() == "mongo: no documents in result" {
 			return nil, unauthenticatedError("Invalid credentials")
@@ -25,7 +24,7 @@ func (s *Service) Login(ctx context.Context, req *auther.LoginRequest) (*auther.
 		return nil, err
 	}
 
-	if user == nil {
+	if user.ID.IsZero() {
 		return nil, unauthenticatedError("Invalid credentials")
 	}
 

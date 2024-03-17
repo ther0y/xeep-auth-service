@@ -2,16 +2,12 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/ther0y/xeep-auth-service/auther"
-	"github.com/ther0y/xeep-auth-service/internal/database/repositories"
 	"github.com/ther0y/xeep-auth-service/internal/model"
 	"github.com/ther0y/xeep-auth-service/internal/utils"
 	"github.com/ther0y/xeep-auth-service/internal/validator"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 )
 
@@ -21,15 +17,17 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 		return nil, invalidArgumentError(violations)
 	}
 
-	var userRepo = repositories.NewUserRepository()
+	newUser := model.NewUser()
+	if exists, err := newUser.IsIdentifierExists(ctx, req.Username); err != nil {
+		return nil, internalError(err.Error())
+	} else if exists {
+		return nil, alreadyExistsError("Identifier")
+	}
 
 	normalizedPhone := utils.NormalizePhone(req.Phone)
 	passwordHash, salt := utils.HashPassword(req.Password)
 
-	fmt.Println("salt: ", salt)
-
-	newUser := &model.User{
-		ID:        primitive.NewObjectID(),
+	newUser = &model.User{
 		Username:  req.Username,
 		Email:     req.Email,
 		Phone:     normalizedPhone,
@@ -39,16 +37,21 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 		UpdatedAt: time.Now().Unix(),
 	}
 
-	u, err := userRepo.InsertUser(context.Background(), newUser)
+	err := newUser.Save()
 	if err != nil {
-		if mongo.IsDuplicateKeyError(err) {
-			return nil, alreadyExistsError("identifier")
+		if err.Error() == "mongo: no documents in result" {
+			return nil, internalError("Failed to create user")
 		}
 
 		return nil, internalError(err.Error())
 	}
 
-	tokens, err := u.GenerateTokens()
+	tokens, err := newUser.GenerateTokens()
+	if err != nil {
+		return nil, internalError(err.Error())
+	}
+
+	_, err = newUser.SaveSession(tokens.RefreshToken, ":", "", "")
 	if err != nil {
 		return nil, internalError(err.Error())
 	}

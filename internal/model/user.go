@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"log"
@@ -10,8 +11,11 @@ import (
 	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
 	"github.com/ther0y/xeep-auth-service/auther"
+	"github.com/ther0y/xeep-auth-service/internal/database"
 	"github.com/ther0y/xeep-auth-service/internal/utils"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var secretKey string
@@ -43,6 +47,10 @@ type User struct {
 	DeletedAt       int64              `bson:"deletedAt,omitempty" json:"deletedAt"`
 }
 
+func NewUser() *User {
+	return &User{}
+}
+
 func (u *User) ToAutherUser() *auther.User {
 	return &auther.User{
 		Id:              u.ID.String(),
@@ -61,16 +69,14 @@ func (u *User) ToAutherUser() *auther.User {
 func (u *User) GenerateAuthToken() (string, error) {
 	now := time.Now()
 
-	authToken := jwt.New(jwt.SigningMethodHS256)
-	authTokenClaims := authToken.Claims.(jwt.MapClaims)
-
-	authTokenClaims["iat"] = now.Unix()
-	authTokenClaims["exp"] = now.Add(time.Hour).Unix()
-
-	authTokenClaims["username"] = u.Username
-	authTokenClaims["sub"] = u.ID.Hex()
-	authTokenClaims["iss"] = "xeep-auth-service"
-	authTokenClaims["aud"] = "xeep-auth-service"
+	authToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"iat":      now.Unix(),
+		"exp":      now.Add(time.Hour).Unix(),
+		"username": u.Username,
+		"sub":      u.ID.Hex(),
+		"iss":      "xeep-auth-service",
+		"aud":      "xeep-auth-service",
+	})
 
 	signedAuthToken, err := authToken.SignedString([]byte(secretKey))
 	if err != nil {
@@ -86,16 +92,14 @@ func (u *User) GenerateRefreshToken() (string, error) {
 	_, _ = rand.Read(refreshId)
 	refreshIdString := hex.EncodeToString(refreshId)
 
-	refreshToken := jwt.New(jwt.SigningMethodHS256)
-	refreshTokenClaims := refreshToken.Claims.(jwt.MapClaims)
-
-	refreshTokenClaims["iat"] = now.Unix()
-	refreshTokenClaims["exp"] = now.Add(time.Hour * 24 * 30).Unix()
-
-	refreshTokenClaims["sub"] = u.ID.Hex()
-	refreshTokenClaims["jti"] = refreshIdString
-	refreshTokenClaims["iss"] = "xeep-auth-service"
-	refreshTokenClaims["aud"] = "xeep-auth-service"
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"iat": now.Unix(),
+		"exp": now.Add(time.Hour * 24 * 30).Unix(),
+		"sub": u.ID.Hex(),
+		"jti": refreshIdString,
+		"iss": "xeep-auth-service",
+		"aud": "xeep-auth-service",
+	})
 
 	signedRefreshToken, err := refreshToken.SignedString([]byte(secretKey))
 	if err != nil {
@@ -110,21 +114,20 @@ type UserTokens struct {
 	RefreshToken string
 }
 
-func (u *User) GenerateTokens() (*UserTokens, error) {
+func (u *User) GenerateTokens() (tokens UserTokens, err error) {
 	authToken, err := u.GenerateAuthToken()
 	if err != nil {
-		return nil, err
+		return tokens, err
 	}
+	tokens.AccessToken = authToken
 
 	refreshToken, err := u.GenerateRefreshToken()
 	if err != nil {
-		return nil, err
+		return tokens, err
 	}
+	tokens.RefreshToken = refreshToken
 
-	return &UserTokens{
-		AccessToken:  authToken,
-		RefreshToken: refreshToken,
-	}, nil
+	return tokens, nil
 }
 
 func (u *User) ComparePassword(password string) (bool, error) {
@@ -134,4 +137,60 @@ func (u *User) ComparePassword(password string) (bool, error) {
 	}
 
 	return hashedPassword == u.Password, nil
+}
+
+func (u *User) Save() error {
+	filter := bson.M{"$or": []bson.M{{"_id": u.ID}, {"username": u.Username}, {"email": u.Email}, {"phone": u.Phone}}}
+	update := bson.M{"$set": u}
+	opts := options.Update().SetUpsert(true)
+
+	_, err := database.UserCollection.UpdateOne(context.Background(), filter, update, opts)
+	if err != nil {
+		return err
+	}
+
+	err = database.UserCollection.FindOne(context.Background(), filter).Decode(u)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (u *User) IsIdentifierExists(ctx context.Context, identifier string) (bool, error) {
+	count, err := database.UserCollection.CountDocuments(ctx, bson.M{"$or": []bson.M{{"username": identifier}, {"email": identifier}, {"phone": identifier}}})
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
+func (u *User) FindByIdentifier(ctx context.Context, identifier string) error {
+	err := database.UserCollection.FindOne(ctx, bson.M{"$or": []bson.M{{"username": identifier}, {"email": identifier}, {"phone": identifier}}}).Decode(u)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (u *User) SaveSession(key string, ip string, device string, deviceId string) (*Session, error) {
+	session := &Session{
+		User:      u.ID,
+		Key:       key,
+		IP:        ip,
+		DeviceID:  deviceId,
+		Device:    device,
+		CreatedAt: time.Now().Unix(),
+		UpdatedAt: time.Now().Unix(),
+		IssuedAt:  time.Now().Unix(),
+	}
+
+	err := session.Save()
+	if err != nil {
+		return nil, err
+	}
+
+	return session, nil
 }
