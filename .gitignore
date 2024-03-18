@@ -35,3 +35,4 @@ target/
 
 # Environment specific files
 .env
+.env.local
