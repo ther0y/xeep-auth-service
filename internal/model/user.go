@@ -2,13 +2,10 @@ package model
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"log"
 	"os"
 	"time"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
 	"github.com/ther0y/xeep-auth-service/auther"
 	"github.com/ther0y/xeep-auth-service/internal/database"
@@ -64,70 +61,6 @@ func (u *User) ToAutherUser() *auther.User {
 		UpdatedAt:       u.UpdatedAt,
 		DeletedAt:       u.DeletedAt,
 	}
-}
-
-func (u *User) GenerateAuthToken() (string, error) {
-	now := time.Now()
-
-	authToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iat":      now.Unix(),
-		"exp":      now.Add(time.Hour).Unix(),
-		"username": u.Username,
-		"sub":      u.ID.Hex(),
-		"iss":      "xeep-auth-service",
-		"aud":      "xeep-auth-service",
-	})
-
-	signedAuthToken, err := authToken.SignedString([]byte(secretKey))
-	if err != nil {
-		return "", err
-	}
-
-	return signedAuthToken, nil
-}
-
-func (u *User) GenerateRefreshToken() (string, error) {
-	now := time.Now()
-	refreshId := make([]byte, 16)
-	_, _ = rand.Read(refreshId)
-	refreshIdString := hex.EncodeToString(refreshId)
-
-	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iat": now.Unix(),
-		"exp": now.Add(time.Hour * 24 * 30).Unix(),
-		"sub": u.ID.Hex(),
-		"jti": refreshIdString,
-		"iss": "xeep-auth-service",
-		"aud": "xeep-auth-service",
-	})
-
-	signedRefreshToken, err := refreshToken.SignedString([]byte(secretKey))
-	if err != nil {
-		return "", err
-	}
-
-	return signedRefreshToken, nil
-}
-
-type UserTokens struct {
-	AccessToken  string
-	RefreshToken string
-}
-
-func (u *User) GenerateTokens() (tokens UserTokens, err error) {
-	authToken, err := u.GenerateAuthToken()
-	if err != nil {
-		return tokens, err
-	}
-	tokens.AccessToken = authToken
-
-	refreshToken, err := u.GenerateRefreshToken()
-	if err != nil {
-		return tokens, err
-	}
-	tokens.RefreshToken = refreshToken
-
-	return tokens, nil
 }
 
 func (u *User) ComparePassword(password string) (bool, error) {

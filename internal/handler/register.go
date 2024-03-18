@@ -6,6 +6,7 @@ import (
 
 	"github.com/ther0y/xeep-auth-service/auther"
 	"github.com/ther0y/xeep-auth-service/internal/model"
+	"github.com/ther0y/xeep-auth-service/internal/services"
 	"github.com/ther0y/xeep-auth-service/internal/utils"
 	"github.com/ther0y/xeep-auth-service/internal/validator"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -46,7 +47,7 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 		return nil, internalError(err.Error())
 	}
 
-	tokens, err := newUser.GenerateTokens()
+	tokens, err := services.GenerateUserTokens(newUser)
 	if err != nil {
 		return nil, internalError(err.Error())
 	}

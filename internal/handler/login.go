@@ -5,6 +5,7 @@ import (
 
 	"github.com/ther0y/xeep-auth-service/auther"
 	"github.com/ther0y/xeep-auth-service/internal/model"
+	"github.com/ther0y/xeep-auth-service/internal/services"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 )
 
@@ -37,9 +38,9 @@ func (s *Service) Login(ctx context.Context, req *auther.LoginRequest) (*auther.
 		return nil, unauthenticatedError("Invalid credentials")
 	}
 
-	tokens, err := user.GenerateTokens()
+	tokens, err := services.GenerateUserTokens(&user)
 	if err != nil {
-		return nil, err
+		return nil, internalError(err.Error())
 	}
 
 	return &auther.LoginResponse{

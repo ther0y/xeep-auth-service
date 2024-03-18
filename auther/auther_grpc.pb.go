@@ -44,7 +44,7 @@ type AutherClient interface {
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 	Sessions(ctx context.Context, in *SessionsRequest, opts ...grpc.CallOption) (*SessionsResponse, error)
-	Profile(ctx context.Context, in *User, opts ...grpc.CallOption) (*User, error)
+	Profile(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProfileResponse, error)
 	SendSmSOTP(ctx context.Context, in *SendSmSOTPRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
 	VerifySmSOTP(ctx context.Context, in *VerifySmsOtpRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
 	SendEmailOTP(ctx context.Context, in *SendEmailOTPRequest, opts ...grpc.CallOption) (*OTPValidationResponse, error)
@@ -122,8 +122,8 @@ func (c *autherClient) Sessions(ctx context.Context, in *SessionsRequest, opts .
 	return out, nil
 }
 
-func (c *autherClient) Profile(ctx context.Context, in *User, opts ...grpc.CallOption) (*User, error) {
-	out := new(User)
+func (c *autherClient) Profile(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProfileResponse, error) {
+	out := new(ProfileResponse)
 	err := c.cc.Invoke(ctx, Auther_Profile_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -178,7 +178,7 @@ type AutherServer interface {
 	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	Sessions(context.Context, *SessionsRequest) (*SessionsResponse, error)
-	Profile(context.Context, *User) (*User, error)
+	Profile(context.Context, *Empty) (*ProfileResponse, error)
 	SendSmSOTP(context.Context, *SendSmSOTPRequest) (*SuccessResponse, error)
 	VerifySmSOTP(context.Context, *VerifySmsOtpRequest) (*SuccessResponse, error)
 	SendEmailOTP(context.Context, *SendEmailOTPRequest) (*OTPValidationResponse, error)
@@ -211,7 +211,7 @@ func (UnimplementedAutherServer) Register(context.Context, *RegisterRequest) (*R
 func (UnimplementedAutherServer) Sessions(context.Context, *SessionsRequest) (*SessionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Sessions not implemented")
 }
-func (UnimplementedAutherServer) Profile(context.Context, *User) (*User, error) {
+func (UnimplementedAutherServer) Profile(context.Context, *Empty) (*ProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Profile not implemented")
 }
 func (UnimplementedAutherServer) SendSmSOTP(context.Context, *SendSmSOTPRequest) (*SuccessResponse, error) {
@@ -366,7 +366,7 @@ func _Auther_Sessions_Handler(srv interface{}, ctx context.Context, dec func(int
 }
 
 func _Auther_Profile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(User)
+	in := new(Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -378,7 +378,7 @@ func _Auther_Profile_Handler(srv interface{}, ctx context.Context, dec func(inte
 		FullMethod: Auther_Profile_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AutherServer).Profile(ctx, req.(*User))
+		return srv.(AutherServer).Profile(ctx, req.(*Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }

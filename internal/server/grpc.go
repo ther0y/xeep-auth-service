@@ -6,9 +6,15 @@ import (
 
 	"github.com/ther0y/xeep-auth-service/auther"
 	autherservice "github.com/ther0y/xeep-auth-service/internal/handler"
+	"github.com/ther0y/xeep-auth-service/internal/services"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
+
+var accecibleRoles = map[string][]string{
+	"/Auther/Profile": {"admin", "user"},
+	"/Auther/Logout":  {"admin", "user"},
+}
 
 func Init(port string) error {
 	address := ":" + port
@@ -18,7 +24,11 @@ func Init(port string) error {
 		return err
 	}
 
-	s := grpc.NewServer()
+	authInterceptor := services.NewAuthInterceptor(accecibleRoles)
+
+	s := grpc.NewServer(
+		grpc.UnaryInterceptor(authInterceptor.Unary()),
+	)
 	service := &autherservice.Service{}
 
 	auther.RegisterAutherServer(s, service)

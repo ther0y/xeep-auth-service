@@ -110,6 +110,13 @@ message OTPValidationResponse {
   bool success = 2;
 }
 
+message Empty {
+}
+
+message ProfileResponse {
+  User user = 1;
+}
+
 service Auther {
   rpc IsUniqueUserIdentifier(IsUniqueUserIdentifierRequest) returns (IsUniqueUserIdentifierResponse);
 
@@ -122,7 +129,7 @@ service Auther {
 
   rpc Sessions(SessionsRequest) returns (SessionsResponse);
 
-  rpc Profile(User) returns (User);
+  rpc Profile(Empty) returns (ProfileResponse);
 
   rpc SendSmSOTP(SendSmSOTPRequest) returns (SuccessResponse);
   rpc VerifySmSOTP(VerifySmsOtpRequest) returns (SuccessResponse);
