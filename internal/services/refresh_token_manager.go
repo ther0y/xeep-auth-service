@@ -1,6 +1,8 @@
 package services
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"os"
 	"time"
 
@@ -36,11 +38,21 @@ type RefreshTokenClaims struct {
 	SessionID string `json:"sessionID"`
 }
 
+type RefreshTokenData struct {
+	ID    string
+	Token string
+}
+
 func newRefreshTokenManager(secretKey string, duration time.Duration) *RefreshTokenManager {
 	return &RefreshTokenManager{secretKey, duration}
 }
 
-func (r *RefreshTokenManager) GenerateToken(user *model.User, sessionID string) (string, error) {
+func (r *RefreshTokenManager) GenerateToken(user *model.User, sessionID string) (refreshTokenData *RefreshTokenData, err error) {
+	refreshTokenID, err := generateRandomID()
+	if err != nil {
+		return refreshTokenData, err
+	}
+
 	claims := RefreshTokenClaims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(r.duration).Unix(),
@@ -48,13 +60,19 @@ func (r *RefreshTokenManager) GenerateToken(user *model.User, sessionID string) 
 			Audience:  "xeep-auth-service",
 			IssuedAt:  time.Now().Unix(),
 			Subject:   user.ID.Hex(),
+			Id:        refreshTokenID,
 		},
 		Username:  user.Username,
 		SessionID: sessionID,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(r.secretKey))
+	tokenString, err := token.SignedString([]byte(r.secretKey))
+	if err != nil {
+		return refreshTokenData, err
+	}
+
+	return &RefreshTokenData{refreshTokenID, tokenString}, nil
 }
 
 func (r *RefreshTokenManager) VerifyToken(tokenString string) (*RefreshTokenClaims, error) {
@@ -76,4 +94,18 @@ func (r *RefreshTokenManager) VerifyToken(tokenString string) (*RefreshTokenClai
 	}
 
 	return claims, nil
+}
+
+func generateRandomID() (string, error) {
+	// Generate a random byte slice with 32 bytes
+	randomBytes := make([]byte, 32)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		return "", err
+	}
+
+	// Encode the random bytes to base64 string
+	randomID := base64.URLEncoding.EncodeToString(randomBytes)
+
+	return randomID, nil
 }

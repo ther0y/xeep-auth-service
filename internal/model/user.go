@@ -50,7 +50,7 @@ func NewUser() *User {
 
 func (u *User) ToAutherUser() *auther.User {
 	return &auther.User{
-		Id:              u.ID.String(),
+		Id:              u.ID.Hex(),
 		Username:        u.Username,
 		Email:           u.Email,
 		Phone:           u.Phone,

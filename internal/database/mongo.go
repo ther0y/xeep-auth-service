@@ -9,12 +9,12 @@ import (
 )
 
 var (
-	client            *mongo.Client
+	mongoClient       *mongo.Client
 	UserCollection    *mongo.Collection
 	SessionCollection *mongo.Collection
 )
 
-func Init(connectionString string, database string) error {
+func InitMongo(connectionString string, database string) error {
 	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(connectionString))
 	if err != nil {
 		return err
@@ -37,6 +37,6 @@ func setupConstraints() error {
 	return setupUserConstraints()
 }
 
-func Close() error {
-	return client.Disconnect(context.Background())
+func CloseMongo() error {
+	return mongoClient.Disconnect(context.Background())
 }

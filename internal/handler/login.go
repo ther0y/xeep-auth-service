@@ -43,6 +43,11 @@ func (s *Service) Login(ctx context.Context, req *auther.LoginRequest) (*auther.
 		return nil, internalError(err.Error())
 	}
 
+	_, err = user.SaveSession(tokens.RefreshTokenID, ":", "", "")
+	if err != nil {
+		return nil, internalError(err.Error())
+	}
+
 	return &auther.LoginResponse{
 		AuthenticationData: &auther.AuthenticationData{
 			Id:           user.ID.Hex(),

@@ -3,8 +3,9 @@ package services
 import "github.com/ther0y/xeep-auth-service/internal/model"
 
 type UserTokens struct {
-	AccessToken  string
-	RefreshToken string
+	AccessToken    string
+	RefreshToken   string
+	RefreshTokenID string
 }
 
 type TokenManager interface {
@@ -19,11 +20,12 @@ func GenerateUserTokens(user *model.User) (tokens UserTokens, err error) {
 	}
 	tokens.AccessToken = accessToken
 
-	refreshToken, err := RefreshTokenManagerService.GenerateToken(user, "1")
+	refreshTokenData, err := RefreshTokenManagerService.GenerateToken(user, "1")
 	if err != nil {
 		return tokens, err
 	}
-	tokens.RefreshToken = refreshToken
+	tokens.RefreshToken = refreshTokenData.Token
+	tokens.RefreshTokenID = refreshTokenData.ID
 
 	return tokens, nil
 }

@@ -16,16 +16,29 @@ func main() {
 		log.Fatalf("Error loading .env file")
 	}
 
-	err = database.Init(os.Getenv("MONGO_URI"), os.Getenv("MONGO_DATABASE"))
+	err = database.InitMongo(os.Getenv("MONGO_URI"), os.Getenv("MONGO_DATABASE"))
 	if err != nil {
 		log.Fatalf("Failed to connect to database %s", err)
 	}
 	fmt.Println("Connected to mongoDB")
 
+	err = database.InitRedis(os.Getenv("REDIS_URI"))
+	if err != nil {
+		log.Fatalf("Failed to connect to redis %s", err)
+	}
+	fmt.Println("Connected to redis")
+
+	// fmt.Println(database.GetRedisClient().)
+
 	defer func() {
-		err := database.Close()
+		err := database.CloseMongo()
 		if err != nil {
 			log.Fatalf("Failed to close database connection %s", err)
+		}
+
+		err = database.CloseRedis()
+		if err != nil {
+			log.Fatalf("Failed to close redis connection %s", err)
 		}
 	}()
 
