@@ -21,7 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	Auther_IsUniqueUserIdentifier_FullMethodName = "/Auther/IsUniqueUserIdentifier"
 	Auther_Login_FullMethodName                  = "/Auther/Login"
-	Auther_LogoutToken_FullMethodName            = "/Auther/LogoutToken"
+	Auther_Logout_FullMethodName                 = "/Auther/Logout"
 	Auther_LogoutAll_FullMethodName              = "/Auther/LogoutAll"
 	Auther_Refresh_FullMethodName                = "/Auther/Refresh"
 	Auther_Register_FullMethodName               = "/Auther/Register"
@@ -39,8 +39,8 @@ const (
 type AutherClient interface {
 	IsUniqueUserIdentifier(ctx context.Context, in *IsUniqueUserIdentifierRequest, opts ...grpc.CallOption) (*IsUniqueUserIdentifierResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthenticationData, error)
-	LogoutToken(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
-	LogoutAll(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
+	Logout(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*SuccessResponse, error)
+	LogoutAll(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*SuccessResponse, error)
 	Refresh(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*AuthenticationData, error)
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*AuthenticationData, error)
 	Sessions(ctx context.Context, in *SessionsRequest, opts ...grpc.CallOption) (*SessionsResponse, error)
@@ -77,16 +77,16 @@ func (c *autherClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc
 	return out, nil
 }
 
-func (c *autherClient) LogoutToken(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*SuccessResponse, error) {
+func (c *autherClient) Logout(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*SuccessResponse, error) {
 	out := new(SuccessResponse)
-	err := c.cc.Invoke(ctx, Auther_LogoutToken_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Auther_Logout_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *autherClient) LogoutAll(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*SuccessResponse, error) {
+func (c *autherClient) LogoutAll(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*SuccessResponse, error) {
 	out := new(SuccessResponse)
 	err := c.cc.Invoke(ctx, Auther_LogoutAll_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -173,8 +173,8 @@ func (c *autherClient) VerifyEmailOTP(ctx context.Context, in *VerifyEmailOtpReq
 type AutherServer interface {
 	IsUniqueUserIdentifier(context.Context, *IsUniqueUserIdentifierRequest) (*IsUniqueUserIdentifierResponse, error)
 	Login(context.Context, *LoginRequest) (*AuthenticationData, error)
-	LogoutToken(context.Context, *LogoutRequest) (*SuccessResponse, error)
-	LogoutAll(context.Context, *LogoutRequest) (*SuccessResponse, error)
+	Logout(context.Context, *Empty) (*SuccessResponse, error)
+	LogoutAll(context.Context, *Empty) (*SuccessResponse, error)
 	Refresh(context.Context, *Empty) (*AuthenticationData, error)
 	Register(context.Context, *RegisterRequest) (*AuthenticationData, error)
 	Sessions(context.Context, *SessionsRequest) (*SessionsResponse, error)
@@ -196,10 +196,10 @@ func (UnimplementedAutherServer) IsUniqueUserIdentifier(context.Context, *IsUniq
 func (UnimplementedAutherServer) Login(context.Context, *LoginRequest) (*AuthenticationData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
-func (UnimplementedAutherServer) LogoutToken(context.Context, *LogoutRequest) (*SuccessResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LogoutToken not implemented")
+func (UnimplementedAutherServer) Logout(context.Context, *Empty) (*SuccessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
-func (UnimplementedAutherServer) LogoutAll(context.Context, *LogoutRequest) (*SuccessResponse, error) {
+func (UnimplementedAutherServer) LogoutAll(context.Context, *Empty) (*SuccessResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LogoutAll not implemented")
 }
 func (UnimplementedAutherServer) Refresh(context.Context, *Empty) (*AuthenticationData, error) {
@@ -275,26 +275,26 @@ func _Auther_Login_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Auther_LogoutToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LogoutRequest)
+func _Auther_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AutherServer).LogoutToken(ctx, in)
+		return srv.(AutherServer).Logout(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Auther_LogoutToken_FullMethodName,
+		FullMethod: Auther_Logout_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AutherServer).LogoutToken(ctx, req.(*LogoutRequest))
+		return srv.(AutherServer).Logout(ctx, req.(*Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Auther_LogoutAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LogoutRequest)
+	in := new(Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -306,7 +306,7 @@ func _Auther_LogoutAll_Handler(srv interface{}, ctx context.Context, dec func(in
 		FullMethod: Auther_LogoutAll_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AutherServer).LogoutAll(ctx, req.(*LogoutRequest))
+		return srv.(AutherServer).LogoutAll(ctx, req.(*Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -471,8 +471,8 @@ var Auther_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Auther_Login_Handler,
 		},
 		{
-			MethodName: "LogoutToken",
-			Handler:    _Auther_LogoutToken_Handler,
+			MethodName: "Logout",
+			Handler:    _Auther_Logout_Handler,
 		},
 		{
 			MethodName: "LogoutAll",

@@ -18,9 +18,6 @@ func invalidArgumentError(violations []*errdetails.BadRequest_FieldViolation) er
 	statusInvalid := status.New(codes.Internal, "invalid parameters")
 
 	statusDetails, err := statusInvalid.WithDetails(badRequest)
-
-	fmt.Println(statusDetails.Err().Error())
-
 	if err != nil {
 		return statusInvalid.Err()
 	}

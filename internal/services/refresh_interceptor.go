@@ -58,8 +58,18 @@ func (r *RefreshInterceptor) verify(ctx context.Context, method string) (user *m
 		return nil, nil, status.Error(codes.Unauthenticated, "refresh token is not provided")
 	}
 
-	refreshtoken := values[0]
-	claims, err := RefreshTokenManagerService.VerifyToken(refreshtoken)
+	refreshToken := values[0]
+
+	isInvalidated, err := RefreshTokenManagerService.IsTokenInvalidated(refreshToken)
+	if err != nil {
+		return nil, nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if isInvalidated {
+		return nil, nil, status.Error(codes.Unauthenticated, "refresh token is invalidated")
+	}
+
+	claims, err := RefreshTokenManagerService.VerifyToken(refreshToken)
 	if err != nil {
 		// TODO: handle expired token
 		// if ve, ok := err.(*jwt.ValidationError); ok {

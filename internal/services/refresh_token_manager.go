@@ -25,7 +25,7 @@ func init() {
 		panic("REFRESH_SECRET is not set")
 	}
 
-	RefreshTokenManagerService = newRefreshTokenManager(secretKey, time.Second*10)
+	RefreshTokenManagerService = newRefreshTokenManager(secretKey, time.Minute*30)
 }
 
 type RefreshTokenManager struct {
@@ -124,4 +124,34 @@ func generateRandomID() (string, error) {
 	randomID := base64.URLEncoding.EncodeToString(randomBytes)
 
 	return randomID, nil
+}
+
+func (r *RefreshTokenManager) generateInvalidationKey(tokenString string) string {
+	return "invalidated:refreshToken:" + tokenString
+}
+
+func (r *RefreshTokenManager) IsTokenInvalidated(tokenString string) (bool, error) {
+	key := r.generateInvalidationKey(tokenString)
+
+	return isTokenInvalidated(key)
+}
+
+func (r *RefreshTokenManager) InvalidateToken(tokenString string) error {
+	key := r.generateInvalidationKey(tokenString)
+
+	// converts token string to jwt and detects expiration time
+	token, err := jwt.ParseWithClaims(tokenString, &RefreshTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(r.secretKey), nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if claims, ok := token.Claims.(*RefreshTokenClaims); ok {
+		// calculates expiration time
+		expirationTime := time.Unix(claims.ExpiresAt, 0)
+		return invalidateToken(key, expirationTime)
+	} else {
+		return fmt.Errorf("invalid token")
+	}
 }

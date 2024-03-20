@@ -1,6 +1,11 @@
 package services
 
-import "github.com/ther0y/xeep-auth-service/internal/model"
+import (
+	"time"
+
+	"github.com/ther0y/xeep-auth-service/internal/database"
+	"github.com/ther0y/xeep-auth-service/internal/model"
+)
 
 type UserTokens struct {
 	AccessToken    string
@@ -28,4 +33,32 @@ func GenerateUserTokens(user *model.User) (tokens UserTokens, err error) {
 	tokens.RefreshTokenID = refreshTokenData.ID
 
 	return tokens, nil
+}
+
+func invalidateToken(key string, expirationTime time.Time) error {
+	duration := time.Until(expirationTime)
+
+	// Set the key in the cache with the expiration time
+	err := database.AddToRedis(key, "true", duration)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func isTokenInvalidated(key string) (bool, error) {
+	data, err := database.GetFromRedis(key)
+	if err != nil {
+		if err.Error() == "redis: nil" {
+			return false, nil
+		}
+		return false, err
+	}
+
+	if data != "" {
+		return true, nil
+	}
+
+	return false, nil
 }

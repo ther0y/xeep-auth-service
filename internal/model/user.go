@@ -18,7 +18,11 @@ import (
 var secretKey string
 
 func init() {
-	godotenv.Load(".env.local")
+	err := godotenv.Load(".env.local")
+	if err != nil {
+		log.Fatal("Failed to load env file in user model")
+		return
+	}
 
 	secretKey = os.Getenv("SECRET_KEY")
 

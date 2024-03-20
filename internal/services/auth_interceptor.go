@@ -59,16 +59,25 @@ func (a *AuthInterceptor) authorize(ctx context.Context, method string) (user *m
 		return nil, status.Error(codes.Unauthenticated, "metadata is not provided")
 	}
 
-	values := md.Get("authorization")
+	values := md.Get("access_token")
 	if len(values) == 0 {
-		return nil, status.Error(codes.Unauthenticated, "authorization token is not provided")
+		return nil, status.Error(codes.Unauthenticated, "access-token token is not provided")
 	}
 
-	accesstoken := values[0]
+	accessToken := values[0]
 
-	claims, err := AccessTokenManagerService.VerifyToken(accesstoken)
+	isInvalidated, err := AccessTokenManagerService.IsTokenInvalidated(accessToken)
 	if err != nil {
-		return nil, status.Error(codes.Unauthenticated, "access token is invalid")
+		return nil, status.Error(codes.Internal, "failed to validate access token")
+	}
+
+	if isInvalidated {
+		return nil, status.Error(codes.Unauthenticated, "access token is invalidated")
+	}
+
+	claims, err := AccessTokenManagerService.VerifyToken(accessToken)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 
 	if claims.ExpiresAt < time.Now().Unix() {

@@ -38,12 +38,6 @@ message LoginRequest {
   string password = 2;
 }
 
-
-message LogoutRequest {
-  string refreshToken = 1;
-  string id = 2;
-}
-
 message IsUniqueUserIdentifierRequest {
   string identifier = 1;
 }
@@ -52,8 +46,6 @@ message IsUniqueUserIdentifierResponse {
   bool isUnique = 1;
 }
 
-
-
 message RegisterRequest {
   string username = 1;
   string password = 2;
@@ -61,8 +53,6 @@ message RegisterRequest {
   string email = 4;
   string otpValidationId = 5;
 }
-
-
 
 message SessionsRequest {
   string id = 1;
@@ -110,8 +100,8 @@ service Auther {
   rpc IsUniqueUserIdentifier(IsUniqueUserIdentifierRequest) returns (IsUniqueUserIdentifierResponse);
 
   rpc Login(LoginRequest) returns (AuthenticationData);
-  rpc LogoutToken(LogoutRequest) returns (SuccessResponse);
-  rpc LogoutAll(LogoutRequest) returns (SuccessResponse);
+  rpc Logout(Empty) returns (SuccessResponse);
+  rpc LogoutAll(Empty) returns (SuccessResponse);
 
   rpc Refresh(Empty) returns (AuthenticationData);
   rpc Register(RegisterRequest) returns (AuthenticationData);

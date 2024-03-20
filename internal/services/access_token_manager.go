@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -83,4 +84,33 @@ func (j *AccessTokenManager) VerifyToken(tokenString string) (*UserClaims, error
 	}
 
 	return nil, err
+}
+
+func (j *AccessTokenManager) generateInvalidationKey(tokenString string) string {
+	return "invalidated:accessToken:" + tokenString
+}
+
+func (j *AccessTokenManager) IsTokenInvalidated(tokenString string) (bool, error) {
+	key := j.generateInvalidationKey(tokenString)
+
+	return isTokenInvalidated(key)
+}
+
+func (j *AccessTokenManager) InvalidateToken(tokenString string) error {
+	key := j.generateInvalidationKey(tokenString)
+
+	//converts token string to jwt and detects expiration time
+	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(j.secretKey), nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if claims, ok := token.Claims.(*UserClaims); ok && token.Valid {
+		expirationTime := time.Unix(claims.ExpiresAt, 0)
+		return invalidateToken(key, expirationTime)
+	} else {
+		return fmt.Errorf("invalid token")
+	}
 }
