@@ -16,6 +16,10 @@ var accecibleRoles = map[string][]string{
 	"/Auther/Logout":  {"admin", "user"},
 }
 
+var refreshableRoles = map[string][]string{
+	"/Auther/Refresh": {"admin", "user"},
+}
+
 func Init(port string) error {
 	address := ":" + port
 
@@ -25,10 +29,15 @@ func Init(port string) error {
 	}
 
 	authInterceptor := services.NewAuthInterceptor(accecibleRoles)
+	refInterceptor := services.NewRefreshInterceptor(refreshableRoles)
 
 	s := grpc.NewServer(
-		grpc.UnaryInterceptor(authInterceptor.Unary()),
+		grpc.ChainUnaryInterceptor(
+			authInterceptor.Unary(),
+			refInterceptor.Unary(),
+		),
 	)
+
 	service := &autherservice.Service{}
 
 	auther.RegisterAutherServer(s, service)

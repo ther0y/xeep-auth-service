@@ -3,6 +3,7 @@ package services
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"os"
 	"time"
 
@@ -24,7 +25,7 @@ func init() {
 		panic("REFRESH_SECRET is not set")
 	}
 
-	RefreshTokenManagerService = newRefreshTokenManager(secretKey, time.Hour*24*7)
+	RefreshTokenManagerService = newRefreshTokenManager(secretKey, time.Second*10)
 }
 
 type RefreshTokenManager struct {
@@ -47,7 +48,7 @@ func newRefreshTokenManager(secretKey string, duration time.Duration) *RefreshTo
 	return &RefreshTokenManager{secretKey, duration}
 }
 
-func (r *RefreshTokenManager) GenerateToken(user *model.User, sessionID string) (refreshTokenData *RefreshTokenData, err error) {
+func (r *RefreshTokenManager) GenerateToken(user *model.User) (refreshTokenData *RefreshTokenData, err error) {
 	refreshTokenID, err := generateRandomID()
 	if err != nil {
 		return refreshTokenData, err
@@ -62,8 +63,7 @@ func (r *RefreshTokenManager) GenerateToken(user *model.User, sessionID string) 
 			Subject:   user.ID.Hex(),
 			Id:        refreshTokenID,
 		},
-		Username:  user.Username,
-		SessionID: sessionID,
+		Username: user.Username,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -91,6 +91,22 @@ func (r *RefreshTokenManager) VerifyToken(tokenString string) (*RefreshTokenClai
 	claims, ok := token.Claims.(*RefreshTokenClaims)
 	if !ok {
 		return nil, err
+	}
+
+	if claims.Issuer != "xeep-auth-service" {
+		return nil, fmt.Errorf("invalid token issuer")
+	}
+
+	if claims.Audience != "xeep-auth-service" {
+		return nil, fmt.Errorf("invalid token audience")
+	}
+
+	if claims.Subject == "" {
+		return nil, fmt.Errorf("invalid token subject")
+	}
+
+	if claims.Id == "" {
+		return nil, fmt.Errorf("invalid token id")
 	}
 
 	return claims, nil

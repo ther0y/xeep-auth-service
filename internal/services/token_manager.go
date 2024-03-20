@@ -20,7 +20,7 @@ func GenerateUserTokens(user *model.User) (tokens UserTokens, err error) {
 	}
 	tokens.AccessToken = accessToken
 
-	refreshTokenData, err := RefreshTokenManagerService.GenerateToken(user, "1")
+	refreshTokenData, err := RefreshTokenManagerService.GenerateToken(user)
 	if err != nil {
 		return tokens, err
 	}

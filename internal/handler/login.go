@@ -9,7 +9,7 @@ import (
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 )
 
-func (s *Service) Login(ctx context.Context, req *auther.LoginRequest) (*auther.LoginResponse, error) {
+func (s *Service) Login(ctx context.Context, req *auther.LoginRequest) (*auther.AuthenticationData, error) {
 	violations := validateLoginRequest(req)
 	if violations != nil {
 		return nil, invalidArgumentError(violations)
@@ -48,12 +48,10 @@ func (s *Service) Login(ctx context.Context, req *auther.LoginRequest) (*auther.
 		return nil, internalError(err.Error())
 	}
 
-	return &auther.LoginResponse{
-		AuthenticationData: &auther.AuthenticationData{
-			Id:           user.ID.Hex(),
-			AccessToken:  tokens.AccessToken,
-			RefreshToken: tokens.RefreshToken,
-		},
+	return &auther.AuthenticationData{
+		Id:           user.ID.Hex(),
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
 	}, nil
 }
 

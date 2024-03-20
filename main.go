@@ -28,8 +28,6 @@ func main() {
 	}
 	fmt.Println("Connected to redis")
 
-	// fmt.Println(database.GetRedisClient().)
-
 	defer func() {
 		err := database.CloseMongo()
 		if err != nil {

@@ -12,7 +12,7 @@ import (
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 )
 
-func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*auther.RegisterResponse, error) {
+func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*auther.AuthenticationData, error) {
 	violations := validateRegisterRequest(req)
 	if violations != nil {
 		return nil, invalidArgumentError(violations)
@@ -57,12 +57,10 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 		return nil, internalError(err.Error())
 	}
 
-	return &auther.RegisterResponse{
-		AuthenticationData: &auther.AuthenticationData{
-			AccessToken:  tokens.AccessToken,
-			RefreshToken: tokens.RefreshToken,
-			Id:           newUser.ID.Hex(),
-		},
+	return &auther.AuthenticationData{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
+		Id:           newUser.ID.Hex(),
 	}, nil
 }
 

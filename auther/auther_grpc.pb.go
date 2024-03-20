@@ -38,11 +38,11 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AutherClient interface {
 	IsUniqueUserIdentifier(ctx context.Context, in *IsUniqueUserIdentifierRequest, opts ...grpc.CallOption) (*IsUniqueUserIdentifierResponse, error)
-	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthenticationData, error)
 	LogoutToken(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
 	LogoutAll(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
-	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
-	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
+	Refresh(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*AuthenticationData, error)
+	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*AuthenticationData, error)
 	Sessions(ctx context.Context, in *SessionsRequest, opts ...grpc.CallOption) (*SessionsResponse, error)
 	Profile(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProfileResponse, error)
 	SendSmSOTP(ctx context.Context, in *SendSmSOTPRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
@@ -68,8 +68,8 @@ func (c *autherClient) IsUniqueUserIdentifier(ctx context.Context, in *IsUniqueU
 	return out, nil
 }
 
-func (c *autherClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
-	out := new(LoginResponse)
+func (c *autherClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthenticationData, error) {
+	out := new(AuthenticationData)
 	err := c.cc.Invoke(ctx, Auther_Login_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -95,8 +95,8 @@ func (c *autherClient) LogoutAll(ctx context.Context, in *LogoutRequest, opts ..
 	return out, nil
 }
 
-func (c *autherClient) Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error) {
-	out := new(RefreshResponse)
+func (c *autherClient) Refresh(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*AuthenticationData, error) {
+	out := new(AuthenticationData)
 	err := c.cc.Invoke(ctx, Auther_Refresh_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -104,8 +104,8 @@ func (c *autherClient) Refresh(ctx context.Context, in *RefreshRequest, opts ...
 	return out, nil
 }
 
-func (c *autherClient) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error) {
-	out := new(RegisterResponse)
+func (c *autherClient) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*AuthenticationData, error) {
+	out := new(AuthenticationData)
 	err := c.cc.Invoke(ctx, Auther_Register_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -172,11 +172,11 @@ func (c *autherClient) VerifyEmailOTP(ctx context.Context, in *VerifyEmailOtpReq
 // for forward compatibility
 type AutherServer interface {
 	IsUniqueUserIdentifier(context.Context, *IsUniqueUserIdentifierRequest) (*IsUniqueUserIdentifierResponse, error)
-	Login(context.Context, *LoginRequest) (*LoginResponse, error)
+	Login(context.Context, *LoginRequest) (*AuthenticationData, error)
 	LogoutToken(context.Context, *LogoutRequest) (*SuccessResponse, error)
 	LogoutAll(context.Context, *LogoutRequest) (*SuccessResponse, error)
-	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
-	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
+	Refresh(context.Context, *Empty) (*AuthenticationData, error)
+	Register(context.Context, *RegisterRequest) (*AuthenticationData, error)
 	Sessions(context.Context, *SessionsRequest) (*SessionsResponse, error)
 	Profile(context.Context, *Empty) (*ProfileResponse, error)
 	SendSmSOTP(context.Context, *SendSmSOTPRequest) (*SuccessResponse, error)
@@ -193,7 +193,7 @@ type UnimplementedAutherServer struct {
 func (UnimplementedAutherServer) IsUniqueUserIdentifier(context.Context, *IsUniqueUserIdentifierRequest) (*IsUniqueUserIdentifierResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IsUniqueUserIdentifier not implemented")
 }
-func (UnimplementedAutherServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
+func (UnimplementedAutherServer) Login(context.Context, *LoginRequest) (*AuthenticationData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
 func (UnimplementedAutherServer) LogoutToken(context.Context, *LogoutRequest) (*SuccessResponse, error) {
@@ -202,10 +202,10 @@ func (UnimplementedAutherServer) LogoutToken(context.Context, *LogoutRequest) (*
 func (UnimplementedAutherServer) LogoutAll(context.Context, *LogoutRequest) (*SuccessResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LogoutAll not implemented")
 }
-func (UnimplementedAutherServer) Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error) {
+func (UnimplementedAutherServer) Refresh(context.Context, *Empty) (*AuthenticationData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Refresh not implemented")
 }
-func (UnimplementedAutherServer) Register(context.Context, *RegisterRequest) (*RegisterResponse, error) {
+func (UnimplementedAutherServer) Register(context.Context, *RegisterRequest) (*AuthenticationData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
 }
 func (UnimplementedAutherServer) Sessions(context.Context, *SessionsRequest) (*SessionsResponse, error) {
@@ -312,7 +312,7 @@ func _Auther_LogoutAll_Handler(srv interface{}, ctx context.Context, dec func(in
 }
 
 func _Auther_Refresh_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RefreshRequest)
+	in := new(Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -324,7 +324,7 @@ func _Auther_Refresh_Handler(srv interface{}, ctx context.Context, dec func(inte
 		FullMethod: Auther_Refresh_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AutherServer).Refresh(ctx, req.(*RefreshRequest))
+		return srv.(AutherServer).Refresh(ctx, req.(*Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
