@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"github.com/ther0y/xeep-auth-service/internal/errors"
 
 	"github.com/ther0y/xeep-auth-service/auther"
 	"github.com/ther0y/xeep-auth-service/internal/model"
@@ -12,40 +13,40 @@ import (
 func (s *Service) Login(ctx context.Context, req *auther.LoginRequest) (*auther.AuthenticationData, error) {
 	violations := validateLoginRequest(req)
 	if violations != nil {
-		return nil, invalidArgumentError(violations)
+		return nil, errors.InvalidArgumentError(violations)
 	}
 
 	user := model.User{}
 	err := user.FindByIdentifier(ctx, req.Identifier)
 	if err != nil {
 		if err.Error() == "mongo: no documents in result" {
-			return nil, unauthenticatedError("Invalid credentials")
+			return nil, errors.UnauthenticatedError("Invalid credentials")
 		}
 
 		return nil, err
 	}
 
 	if user.ID.IsZero() {
-		return nil, unauthenticatedError("Invalid credentials")
+		return nil, errors.UnauthenticatedError("Invalid credentials")
 	}
 
 	match, err := user.ComparePassword(req.Password)
 	if err != nil {
-		return nil, internalError(err.Error())
+		return nil, errors.InternalError("failed to compare the password", err)
 	}
 
 	if !match {
-		return nil, unauthenticatedError("Invalid credentials")
+		return nil, errors.UnauthenticatedError("Invalid credentials")
 	}
 
 	session, err := user.SaveSession(":", "", "")
 	if err != nil {
-		return nil, internalError(err.Error())
+		return nil, errors.InternalError("failed to save the session", err)
 	}
 
 	tokens, err := services.GenerateUserTokens(&user, session.ID.Hex())
 	if err != nil {
-		return nil, internalError(err.Error())
+		return nil, errors.InternalError("failed to generate the tokens", err)
 	}
 
 	return &auther.AuthenticationData{

@@ -72,7 +72,7 @@ func (r *RefreshInterceptor) authorize(ctx *context.Context, method string) (err
 	}
 
 	if latestRevision != claims.Revision {
-		err = InvalidateAllSessionData(claims.SessionID, claims.ExpiresAt)
+		err = InvalidateSessionData(claims.SessionID, claims.ExpiresAt)
 		if err != nil {
 			return err
 		}
