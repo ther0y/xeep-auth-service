@@ -38,12 +38,12 @@ func (s *Service) Login(ctx context.Context, req *auther.LoginRequest) (*auther.
 		return nil, unauthenticatedError("Invalid credentials")
 	}
 
-	tokens, err := services.GenerateUserTokens(&user)
+	session, err := user.SaveSession(":", "", "")
 	if err != nil {
 		return nil, internalError(err.Error())
 	}
 
-	_, err = user.SaveSession(tokens.RefreshTokenID, ":", "", "")
+	tokens, err := services.GenerateUserTokens(&user, session.ID.Hex())
 	if err != nil {
 		return nil, internalError(err.Error())
 	}

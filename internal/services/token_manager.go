@@ -1,9 +1,6 @@
 package services
 
 import (
-	"time"
-
-	"github.com/ther0y/xeep-auth-service/internal/database"
 	"github.com/ther0y/xeep-auth-service/internal/model"
 )
 
@@ -18,14 +15,14 @@ type TokenManager interface {
 	VerifyToken(tokenString string) (*UserClaims, error)
 }
 
-func GenerateUserTokens(user *model.User) (tokens UserTokens, err error) {
-	accessToken, err := AccessTokenManagerService.GenerateToken(user)
+func GenerateUserTokens(user *model.User, sessionID string) (tokens UserTokens, err error) {
+	accessToken, err := AccessTokenManagerService.GenerateToken(user, sessionID)
 	if err != nil {
 		return tokens, err
 	}
 	tokens.AccessToken = accessToken
 
-	refreshTokenData, err := RefreshTokenManagerService.GenerateToken(user)
+	refreshTokenData, err := RefreshTokenManagerService.GenerateToken(user, sessionID)
 	if err != nil {
 		return tokens, err
 	}
@@ -33,32 +30,4 @@ func GenerateUserTokens(user *model.User) (tokens UserTokens, err error) {
 	tokens.RefreshTokenID = refreshTokenData.ID
 
 	return tokens, nil
-}
-
-func invalidateToken(key string, expirationTime time.Time) error {
-	duration := time.Until(expirationTime)
-
-	// Set the key in the cache with the expiration time
-	err := database.AddToRedis(key, "true", duration)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func isTokenInvalidated(key string) (bool, error) {
-	data, err := database.GetFromRedis(key)
-	if err != nil {
-		if err.Error() == "redis: nil" {
-			return false, nil
-		}
-		return false, err
-	}
-
-	if data != "" {
-		return true, nil
-	}
-
-	return false, nil
 }

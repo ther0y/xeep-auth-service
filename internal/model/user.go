@@ -46,6 +46,7 @@ type User struct {
 	CreatedAt       int64              `bson:"createdAt" json:"createdAt"`
 	UpdatedAt       int64              `bson:"updatedAt" json:"updatedAt"`
 	DeletedAt       int64              `bson:"deletedAt,omitempty" json:"deletedAt"`
+	SessionID       string
 }
 
 func NewUser() *User {
@@ -112,10 +113,10 @@ func (u *User) FindByIdentifier(ctx context.Context, identifier string) error {
 	return nil
 }
 
-func (u *User) SaveSession(key string, ip string, device string, deviceId string) (*Session, error) {
+func (u *User) SaveSession(ip string, device string, deviceId string) (*Session, error) {
 	session := &Session{
+		ID:        primitive.NewObjectID(),
 		User:      u.ID,
-		Key:       key,
 		IP:        ip,
 		DeviceID:  deviceId,
 		Device:    device,

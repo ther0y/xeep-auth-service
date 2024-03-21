@@ -3,7 +3,9 @@ package services
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
+	"github.com/ther0y/xeep-auth-service/internal/database"
 	"os"
 	"time"
 
@@ -12,7 +14,11 @@ import (
 	"github.com/ther0y/xeep-auth-service/internal/model"
 )
 
-var RefreshTokenManagerService *RefreshTokenManager
+var (
+	RefreshTokenManagerService *RefreshTokenManager
+	refreshTokenDuration       = int64(30 * 60)  // 30 minutes in seconds
+	refreshTokenGracePeriod    = int64(120 * 60) // 2 hours in seconds
+)
 
 func init() {
 	err := godotenv.Load(".env.local")
@@ -25,18 +31,18 @@ func init() {
 		panic("REFRESH_SECRET is not set")
 	}
 
-	RefreshTokenManagerService = newRefreshTokenManager(secretKey, time.Minute*30)
+	RefreshTokenManagerService = newRefreshTokenManager(secretKey)
 }
 
 type RefreshTokenManager struct {
 	secretKey string
-	duration  time.Duration
 }
 
 type RefreshTokenClaims struct {
 	jwt.StandardClaims
-	Username  string `json:"username"`
-	SessionID string `json:"sessionID"`
+	Username  string `json:"username,omitempty"`
+	SessionID string `json:"sessionID,omitempty"`
+	Revision  int    `json:"revision,omitempty"`
 }
 
 type RefreshTokenData struct {
@@ -44,26 +50,31 @@ type RefreshTokenData struct {
 	Token string
 }
 
-func newRefreshTokenManager(secretKey string, duration time.Duration) *RefreshTokenManager {
-	return &RefreshTokenManager{secretKey, duration}
+func newRefreshTokenManager(secretKey string) *RefreshTokenManager {
+	return &RefreshTokenManager{secretKey}
 }
 
-func (r *RefreshTokenManager) GenerateToken(user *model.User) (refreshTokenData *RefreshTokenData, err error) {
+func (r *RefreshTokenManager) GenerateToken(user *model.User, sessionID string) (refreshTokenData *RefreshTokenData, err error) {
 	refreshTokenID, err := generateRandomID()
 	if err != nil {
 		return refreshTokenData, err
 	}
 
+	// Get the revision number from redis or store 1 if it doesn't exist
+	currentRevision, err := database.GetSessionsLatestRevision(sessionID)
+
 	claims := RefreshTokenClaims{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(r.duration).Unix(),
+			ExpiresAt: time.Now().Unix() + refreshTokenDuration,
 			Issuer:    "xeep-auth-service",
 			Audience:  "xeep-auth-service",
 			IssuedAt:  time.Now().Unix(),
 			Subject:   user.ID.Hex(),
 			Id:        refreshTokenID,
 		},
-		Username: user.Username,
+		Username:  user.Username,
+		SessionID: sessionID,
+		Revision:  currentRevision + 1,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -72,41 +83,30 @@ func (r *RefreshTokenManager) GenerateToken(user *model.User) (refreshTokenData 
 		return refreshTokenData, err
 	}
 
+	err = database.IncrementSessionRevision(sessionID)
+	if err != nil {
+		return refreshTokenData, err
+	}
+
 	return &RefreshTokenData{refreshTokenID, tokenString}, nil
 }
 
-func (r *RefreshTokenManager) VerifyToken(tokenString string) (*RefreshTokenClaims, error) {
+func (r *RefreshTokenManager) GetClaims(tokenString string) (*RefreshTokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &RefreshTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
-			return nil, jwt.ErrSignatureInvalid
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-
 		return []byte(r.secretKey), nil
 	})
+
 	if err != nil {
-		return nil, err
+		return handleTokenError(err, token)
 	}
 
 	claims, ok := token.Claims.(*RefreshTokenClaims)
-	if !ok {
-		return nil, err
-	}
-
-	if claims.Issuer != "xeep-auth-service" {
-		return nil, fmt.Errorf("invalid token issuer")
-	}
-
-	if claims.Audience != "xeep-auth-service" {
-		return nil, fmt.Errorf("invalid token audience")
-	}
-
-	if claims.Subject == "" {
-		return nil, fmt.Errorf("invalid token subject")
-	}
-
-	if claims.Id == "" {
-		return nil, fmt.Errorf("invalid token id")
+	if !ok || !token.Valid {
+		return nil, fmt.Errorf("invalid token")
 	}
 
 	return claims, nil
@@ -126,32 +126,31 @@ func generateRandomID() (string, error) {
 	return randomID, nil
 }
 
-func (r *RefreshTokenManager) generateInvalidationKey(tokenString string) string {
-	return "invalidated:refreshToken:" + tokenString
+func handleTokenError(err error, token *jwt.Token) (*RefreshTokenClaims, error) {
+	var validationError *jwt.ValidationError
+	if errors.As(err, &validationError) {
+		if validationError.Errors&jwt.ValidationErrorExpired != 0 {
+			return handleExpiredToken(token)
+		}
+		// Handle other validation errors
+		return nil, err
+	}
+	// Handle non-validation errors
+	return nil, err
 }
 
-func (r *RefreshTokenManager) IsTokenInvalidated(tokenString string) (bool, error) {
-	key := r.generateInvalidationKey(tokenString)
-
-	return isTokenInvalidated(key)
-}
-
-func (r *RefreshTokenManager) InvalidateToken(tokenString string) error {
-	key := r.generateInvalidationKey(tokenString)
-
-	// converts token string to jwt and detects expiration time
-	token, err := jwt.ParseWithClaims(tokenString, &RefreshTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(r.secretKey), nil
-	})
-	if err != nil {
-		return err
+func handleExpiredToken(token *jwt.Token) (*RefreshTokenClaims, error) {
+	claims, ok := token.Claims.(*RefreshTokenClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid token claims")
 	}
 
-	if claims, ok := token.Claims.(*RefreshTokenClaims); ok {
-		// calculates expiration time
-		expirationTime := time.Unix(claims.ExpiresAt, 0)
-		return invalidateToken(key, expirationTime)
-	} else {
-		return fmt.Errorf("invalid token")
+	now := time.Now().Unix()
+	if now <= claims.ExpiresAt+refreshTokenGracePeriod {
+		// Token is within the grace period. You may choose to proceed.
+		return claims, nil
 	}
+
+	// Token is expired and outside the grace period.
+	return nil, fmt.Errorf("token is expired, including the grace period")
 }

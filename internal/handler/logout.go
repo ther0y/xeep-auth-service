@@ -23,24 +23,16 @@ func (s *Service) Logout(ctx context.Context, req *auther.Empty) (*auther.Succes
 	if len(values) == 0 {
 		return nil, unauthenticatedError("Invalid credentials")
 	}
-	refreshtoken := values[0]
+	refreshToken := values[0]
 
-	err := services.RefreshTokenManagerService.InvalidateToken(refreshtoken)
+	claims, err := services.RefreshTokenManagerService.GetClaims(refreshToken)
 	if err != nil {
-		return nil, internalError(err.Error())
-	}
-
-	values = md.Get("access_token")
-	if len(values) == 0 {
 		return nil, unauthenticatedError("Invalid credentials")
 	}
-	accesstoken := values[0]
 
-	// TODO: Check tokens being for same user
-
-	err = services.AccessTokenManagerService.InvalidateToken(accesstoken)
+	err = services.InvalidateAllSessionData(claims.SessionID, claims.ExpiresAt)
 	if err != nil {
-		return nil, internalError(err.Error())
+		return nil, err
 	}
 
 	return &auther.SuccessResponse{

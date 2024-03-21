@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-
 	"github.com/ther0y/xeep-auth-service/auther"
 	"github.com/ther0y/xeep-auth-service/internal/model"
 )

@@ -43,7 +43,7 @@ func (s *Session) ToAutherSession() *auther.Session {
 }
 
 func (s *Session) Save() error {
-	filter := bson.M{"$or": []bson.M{{"_id": s.ID}, {"key": s.Key}}}
+	filter := bson.M{"_id": s.ID}
 	update := bson.M{"$set": s}
 	opts := options.Update().SetUpsert(true)
 
@@ -58,4 +58,15 @@ func (s *Session) Save() error {
 	}
 
 	return nil
+}
+
+func (s *Session) Delete() (bool, error) {
+	filter := bson.M{"_id": s.ID}
+
+	_, err := database.SessionCollection.DeleteOne(context.Background(), filter, nil)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"os"
 	"time"
 
@@ -10,9 +9,13 @@ import (
 	"github.com/ther0y/xeep-auth-service/internal/model"
 )
 
+var (
+	AccessTokenManagerService *AccessTokenManager
+	accessTokenDuration       = int64(15 * 60) // 15 minutes in seconds
+)
+
 type AccessTokenManager struct {
 	secretKey string
-	duration  time.Duration
 }
 
 type UserClaims struct {
@@ -22,9 +25,8 @@ type UserClaims struct {
 	IsEmailVerified bool     `json:"isEmailVerified"`
 	IsPhoneVerified bool     `json:"isPhoneVerified"`
 	Roles           []string `json:"roles"`
+	SessionID       string   `json:"sessionID"`
 }
-
-var AccessTokenManagerService *AccessTokenManager
 
 func init() {
 	err := godotenv.Load(".env.local")
@@ -39,14 +41,13 @@ func init() {
 
 	AccessTokenManagerService = &AccessTokenManager{
 		secretKey: secretKey,
-		duration:  time.Minute * 15,
 	}
 }
 
-func (j *AccessTokenManager) GenerateToken(user *model.User) (string, error) {
+func (j *AccessTokenManager) GenerateToken(user *model.User, sessionID string) (string, error) {
 	claims := UserClaims{
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(j.duration).Unix(),
+			ExpiresAt: time.Now().Unix() + accessTokenDuration,
 			Issuer:    "xeep-auth-service",
 			Audience:  "xeep-auth-service",
 			IssuedAt:  time.Now().Unix(),
@@ -58,7 +59,8 @@ func (j *AccessTokenManager) GenerateToken(user *model.User) (string, error) {
 		IsPhoneVerified: user.IsPhoneVerified,
 
 		//TODO: Add roles
-		Roles: []string{"user"},
+		Roles:     []string{"user"},
+		SessionID: sessionID,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -84,33 +86,4 @@ func (j *AccessTokenManager) VerifyToken(tokenString string) (*UserClaims, error
 	}
 
 	return nil, err
-}
-
-func (j *AccessTokenManager) generateInvalidationKey(tokenString string) string {
-	return "invalidated:accessToken:" + tokenString
-}
-
-func (j *AccessTokenManager) IsTokenInvalidated(tokenString string) (bool, error) {
-	key := j.generateInvalidationKey(tokenString)
-
-	return isTokenInvalidated(key)
-}
-
-func (j *AccessTokenManager) InvalidateToken(tokenString string) error {
-	key := j.generateInvalidationKey(tokenString)
-
-	//converts token string to jwt and detects expiration time
-	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(j.secretKey), nil
-	})
-	if err != nil {
-		return err
-	}
-
-	if claims, ok := token.Claims.(*UserClaims); ok && token.Valid {
-		expirationTime := time.Unix(claims.ExpiresAt, 0)
-		return invalidateToken(key, expirationTime)
-	} else {
-		return fmt.Errorf("invalid token")
-	}
 }

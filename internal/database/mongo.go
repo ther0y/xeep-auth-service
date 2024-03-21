@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -35,6 +36,22 @@ func InitMongo(connectionString string, database string) error {
 
 func setupConstraints() error {
 	return setupUserConstraints()
+}
+
+func DeleteSessionByID(sessionId string) (bool, error) {
+	objectID, err := primitive.ObjectIDFromHex(sessionId)
+	if err != nil {
+		return false, err
+	}
+
+	filter := bson.M{"_id": objectID}
+
+	_, err = SessionCollection.DeleteOne(context.Background(), filter, nil)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 func CloseMongo() error {

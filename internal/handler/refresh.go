@@ -14,12 +14,12 @@ func (s *Service) Refresh(ctx context.Context, req *auther.Empty) (*auther.Authe
 		return nil, unauthenticatedError("Invalid credentials")
 	}
 
-	tokens, err := services.GenerateUserTokens(user)
-	if err != nil {
-		return nil, internalError(err.Error())
+	session := ctx.Value("session").(*model.Session)
+	if session == nil {
+		return nil, unauthenticatedError("Invalid credentials")
 	}
 
-	_, err = user.SaveSession(tokens.RefreshTokenID, ":", "", "")
+	tokens, err := services.GenerateUserTokens(user, session.ID.Hex())
 	if err != nil {
 		return nil, internalError(err.Error())
 	}

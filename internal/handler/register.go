@@ -47,12 +47,12 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 		return nil, internalError(err.Error())
 	}
 
-	tokens, err := services.GenerateUserTokens(newUser)
+	session, err := newUser.SaveSession(":", "", "")
 	if err != nil {
 		return nil, internalError(err.Error())
 	}
 
-	_, err = newUser.SaveSession(tokens.RefreshTokenID, ":", "", "")
+	tokens, err := services.GenerateUserTokens(newUser, session.ID.Hex())
 	if err != nil {
 		return nil, internalError(err.Error())
 	}

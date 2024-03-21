@@ -2,10 +2,10 @@ package services
 
 import (
 	"context"
+	"github.com/ther0y/xeep-auth-service/internal/model"
 	"time"
 
 	"github.com/ther0y/xeep-auth-service/internal/database"
-	"github.com/ther0y/xeep-auth-service/internal/model"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc"
@@ -25,12 +25,10 @@ func NewAuthInterceptor(accecibleRoles map[string][]string) *AuthInterceptor {
 func (a *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 
-		user, err := a.authorize(ctx, info.FullMethod)
+		err := a.authorize(&ctx, info.FullMethod)
 		if err != nil {
 			return nil, err
 		}
-
-		ctx = context.WithValue(ctx, "user", user)
 
 		return handler(ctx, req)
 	}
@@ -47,64 +45,63 @@ func (a *AuthInterceptor) hasRequiredRole(roles []string, requiredRoles []string
 	return false
 }
 
-func (a *AuthInterceptor) authorize(ctx context.Context, method string) (user *model.User, err error) {
-	accecibleRoles, ok := a.accessibleRoles[method]
+func (a *AuthInterceptor) authorize(ctx *context.Context, method string) (err error) {
+	accessibleRoles, ok := a.accessibleRoles[method]
 	if !ok {
 		// No roles required to access this method
-		return nil, nil
+		return nil
 	}
 
-	md, ok := metadata.FromIncomingContext(ctx)
+	md, ok := metadata.FromIncomingContext(*ctx)
 	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "metadata is not provided")
+		return status.Error(codes.Unauthenticated, "metadata is not provided")
 	}
 
 	values := md.Get("access_token")
 	if len(values) == 0 {
-		return nil, status.Error(codes.Unauthenticated, "access-token token is not provided")
+		return status.Error(codes.Unauthenticated, "access-token token is not provided")
 	}
 
 	accessToken := values[0]
 
-	isInvalidated, err := AccessTokenManagerService.IsTokenInvalidated(accessToken)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to validate access token")
-	}
-
-	if isInvalidated {
-		return nil, status.Error(codes.Unauthenticated, "access token is invalidated")
-	}
-
 	claims, err := AccessTokenManagerService.VerifyToken(accessToken)
 	if err != nil {
-		return nil, status.Error(codes.Unauthenticated, err.Error())
+		return status.Error(codes.Unauthenticated, err.Error())
+	}
+
+	isSessionInvalidated, err := IsSessionInvalidated(claims.SessionID)
+	if err != nil || isSessionInvalidated {
+		return status.Error(codes.Internal, "session is invalidated")
 	}
 
 	if claims.ExpiresAt < time.Now().Unix() {
-		return nil, status.Error(codes.Unauthenticated, "access token is expired")
+		return status.Error(codes.Unauthenticated, "access token is expired")
 	}
 
 	if claims.Issuer != "xeep-auth-service" {
-		return nil, status.Error(codes.Unauthenticated, "access token is invalid")
+		return status.Error(codes.Unauthenticated, "access token is invalid")
 	}
 
 	if claims.Audience != "xeep-auth-service" {
-		return nil, status.Error(codes.Unauthenticated, "access token is invalid")
+		return status.Error(codes.Unauthenticated, "access token is invalid")
 	}
 
-	if !a.hasRequiredRole(claims.Roles, accecibleRoles) {
-		return nil, status.Error(codes.PermissionDenied, "user does not have required roles")
+	if !a.hasRequiredRole(claims.Roles, accessibleRoles) {
+		return status.Error(codes.PermissionDenied, "user does not have required roles")
 	}
 
-	objectId, err := primitive.ObjectIDFromHex(claims.Subject)
+	userObjectID, err := primitive.ObjectIDFromHex(claims.Subject)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to get user")
+		return status.Error(codes.Internal, "failed to get user")
 	}
 
-	err = database.UserCollection.FindOne(ctx, bson.M{"_id": objectId}).Decode(&user)
+	user := &model.User{}
+	err = database.UserCollection.FindOne(*ctx, bson.M{"_id": userObjectID}).Decode(&user)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to get user")
+		return status.Error(codes.Internal, "failed to get user")
 	}
 
-	return user, nil
+	user.SessionID = claims.SessionID
+	*ctx = context.WithValue(*ctx, "user", user)
+	return nil
 }
