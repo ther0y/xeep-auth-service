@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 
 	"github.com/ther0y/xeep-auth-service/auther"
@@ -29,6 +30,7 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 	passwordHash, salt := utils.HashPassword(req.Password)
 
 	newUser = &model.User{
+		ID:        primitive.NewObjectID(),
 		Username:  req.Username,
 		Email:     req.Email,
 		Phone:     normalizedPhone,

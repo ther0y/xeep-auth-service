@@ -78,7 +78,7 @@ func (u *User) ComparePassword(password string) (bool, error) {
 }
 
 func (u *User) Save() error {
-	filter := bson.M{"$or": []bson.M{{"_id": u.ID}, {"username": u.Username}, {"email": u.Email}, {"phone": u.Phone}}}
+	filter := bson.M{"$and": []bson.M{{"_id": u.ID}, {"username": u.Username}, {"email": u.Email}, {"phone": u.Phone}}}
 	update := bson.M{"$set": u}
 	opts := options.Update().SetUpsert(true)
 
