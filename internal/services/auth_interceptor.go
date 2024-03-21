@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"github.com/ther0y/xeep-auth-service/internal/model"
 	"time"
 
@@ -70,14 +71,19 @@ func (a *AuthInterceptor) authorize(ctx *context.Context, method string) (err er
 	}
 
 	isSessionInvalidated, err := IsSessionInvalidated(claims.SessionID)
-	if err != nil || isSessionInvalidated {
-		return status.Error(codes.Internal, "session is invalidated")
+	if err != nil {
+		return status.Error(codes.Internal, fmt.Errorf("failed to check if session is invalidated: %w", err).Error())
+	}
+
+	if isSessionInvalidated {
+		return status.Error(codes.Unauthenticated, "session is invalidated")
 	}
 
 	if claims.ExpiresAt < time.Now().Unix() {
 		return status.Error(codes.Unauthenticated, "access token is expired")
 	}
 
+	// TODO: Add issuer and audience to env
 	if claims.Issuer != "xeep-auth-service" {
 		return status.Error(codes.Unauthenticated, "access token is invalid")
 	}
@@ -92,13 +98,13 @@ func (a *AuthInterceptor) authorize(ctx *context.Context, method string) (err er
 
 	userObjectID, err := primitive.ObjectIDFromHex(claims.Subject)
 	if err != nil {
-		return status.Error(codes.Internal, "failed to get user")
+		return status.Error(codes.Internal, fmt.Errorf("failed to convert user id to object id: %w", err).Error())
 	}
 
 	user := &model.User{}
 	err = database.UserCollection.FindOne(*ctx, bson.M{"_id": userObjectID}).Decode(&user)
 	if err != nil {
-		return status.Error(codes.Internal, "failed to get user")
+		return status.Error(codes.Internal, fmt.Errorf("failed to get user from database: %w", err).Error())
 	}
 
 	user.SessionID = claims.SessionID

@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"github.com/ther0y/xeep-auth-service/internal/database"
 	"github.com/ther0y/xeep-auth-service/internal/model"
 	"go.mongodb.org/mongo-driver/bson"
@@ -53,12 +54,12 @@ func (r *RefreshInterceptor) authorize(ctx *context.Context, method string) (err
 
 	claims, err := RefreshTokenManagerService.GetClaims(refreshToken)
 	if err != nil {
-		return err
+		return status.Error(codes.Unauthenticated, err.Error())
 	}
 
 	isInvalidated, err := IsSessionInvalidated(claims.SessionID)
 	if err != nil {
-		return status.Error(codes.Internal, err.Error())
+		return status.Error(codes.Internal, fmt.Errorf("failed to check if the session is invalidated: %w", err).Error())
 	}
 
 	if isInvalidated {
@@ -67,7 +68,7 @@ func (r *RefreshInterceptor) authorize(ctx *context.Context, method string) (err
 
 	latestRevision, err := database.GetSessionsLatestRevision(claims.SessionID)
 	if err != nil {
-		return status.Error(codes.Internal, err.Error())
+		return status.Error(codes.Internal, fmt.Errorf("failed to get the latest revision: %w", err).Error())
 	}
 
 	if latestRevision != claims.Revision {
@@ -81,25 +82,25 @@ func (r *RefreshInterceptor) authorize(ctx *context.Context, method string) (err
 
 	userObjectID, err := primitive.ObjectIDFromHex(claims.Subject)
 	if err != nil {
-		return status.Error(codes.Internal, err.Error())
+		return status.Error(codes.Internal, fmt.Errorf("failed to convert the user id: %w", err).Error())
 	}
 
 	user := &model.User{}
 	err = database.UserCollection.FindOne(*ctx, bson.M{"_id": userObjectID}).Decode(user)
 	if err != nil {
-		return status.Error(codes.Internal, err.Error())
+		return status.Error(codes.Internal, fmt.Errorf("failed to get the user from the database: %w", err).Error())
 	}
 	*ctx = context.WithValue(*ctx, "user", user)
 
 	sessionObjectID, err := primitive.ObjectIDFromHex(claims.SessionID)
 	if err != nil {
-		return status.Error(codes.Internal, err.Error())
+		return status.Error(codes.Internal, fmt.Errorf("failed to convert the session id: %w", err).Error())
 	}
 
 	session := &model.Session{}
 	err = database.SessionCollection.FindOne(*ctx, bson.M{"_id": sessionObjectID}).Decode(&session)
 	if err != nil {
-		return status.Error(codes.Internal, err.Error())
+		return status.Error(codes.Internal, fmt.Errorf("failed to get the session from the database: %w", err).Error())
 	}
 	*ctx = context.WithValue(*ctx, "session", session)
 

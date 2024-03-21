@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -77,13 +78,13 @@ func (j *AccessTokenManager) VerifyToken(tokenString string) (*UserClaims, error
 		return []byte(j.secretKey), nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to verify token: %w", err)
 	}
 
 	claims, ok := token.Claims.(*UserClaims)
-	if ok && token.Valid {
-		return claims, nil
+	if !ok || !token.Valid {
+		return nil, fmt.Errorf("invalid token")
 	}
 
-	return nil, err
+	return claims, nil
 }

@@ -57,7 +57,7 @@ func newRefreshTokenManager(secretKey string) *RefreshTokenManager {
 func (r *RefreshTokenManager) GenerateToken(user *model.User, sessionID string) (refreshTokenData *RefreshTokenData, err error) {
 	refreshTokenID, err := generateRandomID()
 	if err != nil {
-		return refreshTokenData, err
+		return refreshTokenData, fmt.Errorf("failed to generate refresh token ID: %w", err)
 	}
 
 	// Get the revision number from redis or store 1 if it doesn't exist
@@ -80,12 +80,12 @@ func (r *RefreshTokenManager) GenerateToken(user *model.User, sessionID string) 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(r.secretKey))
 	if err != nil {
-		return refreshTokenData, err
+		return refreshTokenData, fmt.Errorf("failed to sign refresh token: %w", err)
 	}
 
 	err = database.IncrementSessionRevision(sessionID)
 	if err != nil {
-		return refreshTokenData, err
+		return refreshTokenData, fmt.Errorf("failed to increment session revision: %w", err)
 	}
 
 	return &RefreshTokenData{refreshTokenID, tokenString}, nil
@@ -117,7 +117,7 @@ func generateRandomID() (string, error) {
 	randomBytes := make([]byte, 32)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to generate random ID: %w", err)
 	}
 
 	// Encode the random bytes to base64 string

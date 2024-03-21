@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"github.com/ther0y/xeep-auth-service/internal/model"
 )
 
@@ -18,13 +19,13 @@ type TokenManager interface {
 func GenerateUserTokens(user *model.User, sessionID string) (tokens UserTokens, err error) {
 	accessToken, err := AccessTokenManagerService.GenerateToken(user, sessionID)
 	if err != nil {
-		return tokens, err
+		return tokens, fmt.Errorf("failed to generate access token: %w", err)
 	}
 	tokens.AccessToken = accessToken
 
 	refreshTokenData, err := RefreshTokenManagerService.GenerateToken(user, sessionID)
 	if err != nil {
-		return tokens, err
+		return tokens, fmt.Errorf("failed to generate refresh token: %w", err)
 	}
 	tokens.RefreshToken = refreshTokenData.Token
 	tokens.RefreshTokenID = refreshTokenData.ID
