@@ -54,10 +54,6 @@ message RegisterRequest {
   string otpValidationId = 5;
 }
 
-message SessionsRequest {
-  string id = 1;
-}
-
 message SessionsResponse {
   repeated Session sessions = 1;
 }
@@ -106,7 +102,7 @@ service Auther {
   rpc Refresh(Empty) returns (AuthenticationData);
   rpc Register(RegisterRequest) returns (AuthenticationData);
 
-  rpc Sessions(SessionsRequest) returns (SessionsResponse);
+  rpc Sessions(Empty) returns (SessionsResponse);
 
   rpc Profile(Empty) returns (ProfileResponse);
 

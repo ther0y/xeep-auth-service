@@ -68,7 +68,7 @@ func IsSessionInvalidated(sessionID string) (bool, error) {
 	return false, nil
 }
 
-func GetUsersSessions(userID string) ([]string, error) {
+func GetUsersSessionIDs(userID string) ([]string, error) {
 	userObjectId, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, fmt.Errorf("failed to convert user id to object id: %w", err).Error())

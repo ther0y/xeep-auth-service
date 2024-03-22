@@ -47,7 +47,7 @@ func (s *Service) LogoutAll(ctx context.Context, req *auther.Empty) (*auther.Suc
 		return nil, errors.UnauthenticatedError("Invalid credentials")
 	}
 
-	sessions, err := services.GetUsersSessions(user.ID.Hex())
+	sessions, err := services.GetUsersSessionIDs(user.ID.Hex())
 
 	err = services.InvalidateAllSessionsData(sessions)
 	if err != nil {

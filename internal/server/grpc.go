@@ -13,6 +13,7 @@ import (
 
 var accecibleRoles = map[string][]string{
 	"/Auther/Profile":   {"admin", "user"},
+	"/Auther/Sessions":  {"admin", "user"},
 	"/Auther/Logout":    {"admin", "user"},
 	"/Auther/LogoutAll": {"admin", "user"},
 }
