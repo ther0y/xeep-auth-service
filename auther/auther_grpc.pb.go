@@ -27,8 +27,8 @@ const (
 	Auther_Register_FullMethodName               = "/Auther/Register"
 	Auther_Sessions_FullMethodName               = "/Auther/Sessions"
 	Auther_Profile_FullMethodName                = "/Auther/Profile"
-	Auther_SendSmSOTP_FullMethodName             = "/Auther/SendSmSOTP"
-	Auther_VerifySmSOTP_FullMethodName           = "/Auther/VerifySmSOTP"
+	Auther_SendSmsOTP_FullMethodName             = "/Auther/SendSmsOTP"
+	Auther_VerifySmsOTP_FullMethodName           = "/Auther/VerifySmsOTP"
 	Auther_SendEmailOTP_FullMethodName           = "/Auther/SendEmailOTP"
 	Auther_VerifyEmailOTP_FullMethodName         = "/Auther/VerifyEmailOTP"
 )
@@ -45,8 +45,8 @@ type AutherClient interface {
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*AuthenticationData, error)
 	Sessions(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*SessionsResponse, error)
 	Profile(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProfileResponse, error)
-	SendSmSOTP(ctx context.Context, in *SendSmSOTPRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
-	VerifySmSOTP(ctx context.Context, in *VerifySmsOtpRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
+	SendSmsOTP(ctx context.Context, in *SendSmSOTPRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
+	VerifySmsOTP(ctx context.Context, in *VerifySmsOtpRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
 	SendEmailOTP(ctx context.Context, in *SendEmailOTPRequest, opts ...grpc.CallOption) (*OTPValidationResponse, error)
 	VerifyEmailOTP(ctx context.Context, in *VerifyEmailOtpRequest, opts ...grpc.CallOption) (*OTPValidationResponse, error)
 }
@@ -131,18 +131,18 @@ func (c *autherClient) Profile(ctx context.Context, in *Empty, opts ...grpc.Call
 	return out, nil
 }
 
-func (c *autherClient) SendSmSOTP(ctx context.Context, in *SendSmSOTPRequest, opts ...grpc.CallOption) (*SuccessResponse, error) {
+func (c *autherClient) SendSmsOTP(ctx context.Context, in *SendSmSOTPRequest, opts ...grpc.CallOption) (*SuccessResponse, error) {
 	out := new(SuccessResponse)
-	err := c.cc.Invoke(ctx, Auther_SendSmSOTP_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Auther_SendSmsOTP_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *autherClient) VerifySmSOTP(ctx context.Context, in *VerifySmsOtpRequest, opts ...grpc.CallOption) (*SuccessResponse, error) {
+func (c *autherClient) VerifySmsOTP(ctx context.Context, in *VerifySmsOtpRequest, opts ...grpc.CallOption) (*SuccessResponse, error) {
 	out := new(SuccessResponse)
-	err := c.cc.Invoke(ctx, Auther_VerifySmSOTP_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, Auther_VerifySmsOTP_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -179,8 +179,8 @@ type AutherServer interface {
 	Register(context.Context, *RegisterRequest) (*AuthenticationData, error)
 	Sessions(context.Context, *Empty) (*SessionsResponse, error)
 	Profile(context.Context, *Empty) (*ProfileResponse, error)
-	SendSmSOTP(context.Context, *SendSmSOTPRequest) (*SuccessResponse, error)
-	VerifySmSOTP(context.Context, *VerifySmsOtpRequest) (*SuccessResponse, error)
+	SendSmsOTP(context.Context, *SendSmSOTPRequest) (*SuccessResponse, error)
+	VerifySmsOTP(context.Context, *VerifySmsOtpRequest) (*SuccessResponse, error)
 	SendEmailOTP(context.Context, *SendEmailOTPRequest) (*OTPValidationResponse, error)
 	VerifyEmailOTP(context.Context, *VerifyEmailOtpRequest) (*OTPValidationResponse, error)
 	mustEmbedUnimplementedAutherServer()
@@ -214,11 +214,11 @@ func (UnimplementedAutherServer) Sessions(context.Context, *Empty) (*SessionsRes
 func (UnimplementedAutherServer) Profile(context.Context, *Empty) (*ProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Profile not implemented")
 }
-func (UnimplementedAutherServer) SendSmSOTP(context.Context, *SendSmSOTPRequest) (*SuccessResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendSmSOTP not implemented")
+func (UnimplementedAutherServer) SendSmsOTP(context.Context, *SendSmSOTPRequest) (*SuccessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendSmsOTP not implemented")
 }
-func (UnimplementedAutherServer) VerifySmSOTP(context.Context, *VerifySmsOtpRequest) (*SuccessResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method VerifySmSOTP not implemented")
+func (UnimplementedAutherServer) VerifySmsOTP(context.Context, *VerifySmsOtpRequest) (*SuccessResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method VerifySmsOTP not implemented")
 }
 func (UnimplementedAutherServer) SendEmailOTP(context.Context, *SendEmailOTPRequest) (*OTPValidationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendEmailOTP not implemented")
@@ -383,38 +383,38 @@ func _Auther_Profile_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Auther_SendSmSOTP_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Auther_SendSmsOTP_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SendSmSOTPRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AutherServer).SendSmSOTP(ctx, in)
+		return srv.(AutherServer).SendSmsOTP(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Auther_SendSmSOTP_FullMethodName,
+		FullMethod: Auther_SendSmsOTP_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AutherServer).SendSmSOTP(ctx, req.(*SendSmSOTPRequest))
+		return srv.(AutherServer).SendSmsOTP(ctx, req.(*SendSmSOTPRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Auther_VerifySmSOTP_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Auther_VerifySmsOTP_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VerifySmsOtpRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AutherServer).VerifySmSOTP(ctx, in)
+		return srv.(AutherServer).VerifySmsOTP(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Auther_VerifySmSOTP_FullMethodName,
+		FullMethod: Auther_VerifySmsOTP_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AutherServer).VerifySmSOTP(ctx, req.(*VerifySmsOtpRequest))
+		return srv.(AutherServer).VerifySmsOTP(ctx, req.(*VerifySmsOtpRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -495,12 +495,12 @@ var Auther_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Auther_Profile_Handler,
 		},
 		{
-			MethodName: "SendSmSOTP",
-			Handler:    _Auther_SendSmSOTP_Handler,
+			MethodName: "SendSmsOTP",
+			Handler:    _Auther_SendSmsOTP_Handler,
 		},
 		{
-			MethodName: "VerifySmSOTP",
-			Handler:    _Auther_VerifySmSOTP_Handler,
+			MethodName: "VerifySmsOTP",
+			Handler:    _Auther_VerifySmsOTP_Handler,
 		},
 		{
 			MethodName: "SendEmailOTP",

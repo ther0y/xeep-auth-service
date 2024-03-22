@@ -71,3 +71,10 @@ func DeleteSessionRevisionTracker(sessionID string) error {
 	_, err := redisClient.Del(context.Background(), key).Result()
 	return err
 }
+
+func StoreHashedSmsOtp(phone string, otp string) error {
+	key := "otp:sms:" + phone
+
+	// TODO: put the expiration time in a config file
+	return AddToRedis(key, otp, time.Minute*2)
+}

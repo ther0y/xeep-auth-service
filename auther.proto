@@ -106,8 +106,8 @@ service Auther {
 
   rpc Profile(Empty) returns (ProfileResponse);
 
-  rpc SendSmSOTP(SendSmSOTPRequest) returns (SuccessResponse);
-  rpc VerifySmSOTP(VerifySmsOtpRequest) returns (SuccessResponse);
+  rpc SendSmsOTP(SendSmSOTPRequest) returns (SuccessResponse);
+  rpc VerifySmsOTP(VerifySmsOtpRequest) returns (SuccessResponse);
 
   rpc SendEmailOTP(SendEmailOTPRequest) returns (OTPValidationResponse);
   rpc VerifyEmailOTP(VerifyEmailOtpRequest) returns (OTPValidationResponse);
