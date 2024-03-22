@@ -41,10 +41,9 @@ type RefreshTokenManager struct {
 }
 
 type RefreshTokenClaims struct {
-	jwt.StandardClaims
-	Username  string `json:"username,omitempty"`
-	SessionID string `json:"sessionID,omitempty"`
-	Revision  int    `json:"revision,omitempty"`
+	Username string `json:"username,omitempty"`
+	Revision int    `json:"revision,omitempty"`
+	SessionClaims
 }
 
 type RefreshTokenData struct {
@@ -76,17 +75,21 @@ func (r *RefreshTokenManager) GenerateToken(user *model.User, sessionID string) 
 	}
 
 	claims := RefreshTokenClaims{
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Unix() + refreshTokenDuration,
-			Issuer:    tokenIssuer,
-			Audience:  tokenAudience,
-			IssuedAt:  time.Now().Unix(),
-			Subject:   user.ID.Hex(),
-			Id:        refreshTokenID,
+
+		Username: user.Username,
+		Revision: currentRevision + 1,
+		SessionClaims: SessionClaims{
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: time.Now().Unix() + refreshTokenDuration,
+				Issuer:    tokenIssuer,
+				Audience:  tokenAudience,
+				IssuedAt:  time.Now().Unix(),
+				Subject:   user.ID.Hex(),
+				Id:        refreshTokenID,
+			},
+
+			SessionID: sessionID,
 		},
-		Username:  user.Username,
-		SessionID: sessionID,
-		Revision:  currentRevision + 1,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

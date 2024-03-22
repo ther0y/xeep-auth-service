@@ -40,30 +40,49 @@ func (r *RefreshInterceptor) authorize(ctx *context.Context, method string) (err
 		return nil
 	}
 
-	md, ok := metadata.FromIncomingContext(*ctx)
-	if !ok {
-		return status.Error(codes.Unauthenticated, "metadata is not provided")
+	refreshToken, err := getRefreshTokenFromContext(*ctx)
+	if err != nil {
+		return status.Error(codes.Unauthenticated, err.Error())
 	}
-
-	values := md.Get("refresh_token")
-	if len(values) == 0 {
-		return status.Error(codes.Unauthenticated, "refresh token is not provided")
-	}
-
-	refreshToken := values[0]
 
 	claims, err := RefreshTokenManagerService.GetClaims(refreshToken)
 	if err != nil {
 		return status.Error(codes.Unauthenticated, err.Error())
 	}
 
-	isInvalidated, err := IsSessionInvalidated(claims.SessionID)
-	if err != nil {
-		return status.Error(codes.Internal, fmt.Errorf("failed to check if the session is invalidated: %w", err).Error())
+	if err := checkSessionValidityAndRevision(claims); err != nil {
+		return err
 	}
 
-	if isInvalidated {
-		return status.Error(codes.Unauthenticated, "refresh token is invalidated")
+	if err := setUserAndSessionInContext(ctx, &claims.SessionClaims); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getRefreshTokenFromContext(ctx context.Context) (string, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", status.Error(codes.Unauthenticated, "metadata is not provided")
+	}
+
+	values := md.Get("refresh_token")
+	if len(values) == 0 {
+		return "", status.Error(codes.Unauthenticated, "refresh token is not provided")
+	}
+
+	return values[0], nil
+}
+
+func checkSessionValidityAndRevision(claims *RefreshTokenClaims) error {
+	isSessionInvalidated, err := IsSessionInvalidated(claims.SessionID)
+	if err != nil {
+		return status.Error(codes.Internal, fmt.Errorf("failed to check if session is invalidated: %w", err).Error())
+	}
+
+	if isSessionInvalidated {
+		return status.Error(codes.Unauthenticated, "session is invalidated")
 	}
 
 	latestRevision, err := database.GetSessionsLatestRevision(claims.SessionID)
@@ -80,28 +99,33 @@ func (r *RefreshInterceptor) authorize(ctx *context.Context, method string) (err
 		return status.Error(codes.Unauthenticated, "refresh token is invalidated")
 	}
 
+	return nil
+}
+
+func setUserAndSessionInContext(ctx *context.Context, claims *SessionClaims) error {
 	userObjectID, err := primitive.ObjectIDFromHex(claims.Subject)
 	if err != nil {
-		return status.Error(codes.Internal, fmt.Errorf("failed to convert the user id: %w", err).Error())
+		return status.Error(codes.Internal, fmt.Errorf("failed to convert user id to object id: %w", err).Error())
 	}
 
 	user := &model.User{}
-	err = database.UserCollection.FindOne(*ctx, bson.M{"_id": userObjectID}).Decode(user)
+	err = database.UserCollection.FindOne(*ctx, bson.M{"_id": userObjectID}).Decode(&user)
 	if err != nil {
-		return status.Error(codes.Internal, fmt.Errorf("failed to get the user from the database: %w", err).Error())
+		return status.Error(codes.Internal, fmt.Errorf("failed to get user from database: %w", err).Error())
 	}
-	*ctx = context.WithValue(*ctx, "user", user)
 
 	sessionObjectID, err := primitive.ObjectIDFromHex(claims.SessionID)
 	if err != nil {
-		return status.Error(codes.Internal, fmt.Errorf("failed to convert the session id: %w", err).Error())
+		return status.Error(codes.Internal, fmt.Errorf("failed to convert session id to object id: %w", err).Error())
 	}
 
 	session := &model.Session{}
 	err = database.SessionCollection.FindOne(*ctx, bson.M{"_id": sessionObjectID}).Decode(&session)
 	if err != nil {
-		return status.Error(codes.Internal, fmt.Errorf("failed to get the session from the database: %w", err).Error())
+		return status.Error(codes.Internal, fmt.Errorf("failed to get session from database: %w", err).Error())
 	}
+
+	*ctx = context.WithValue(*ctx, "user", user)
 	*ctx = context.WithValue(*ctx, "session", session)
 
 	return nil

@@ -2,13 +2,12 @@ package services
 
 import (
 	"fmt"
-	"github.com/ther0y/xeep-auth-service/internal/utils"
-	"os"
-	"time"
-
 	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
 	"github.com/ther0y/xeep-auth-service/internal/model"
+	"github.com/ther0y/xeep-auth-service/internal/utils"
+	"os"
+	"time"
 )
 
 var (
@@ -20,14 +19,18 @@ type AccessTokenManager struct {
 	secretKey string
 }
 
-type UserClaims struct {
+type SessionClaims struct {
 	jwt.StandardClaims
+	SessionID string `json:"sessionID"`
+}
+
+type UserClaims struct {
 	Username        string   `json:"username"`
 	Email           string   `json:"email"`
 	IsEmailVerified bool     `json:"isEmailVerified"`
 	IsPhoneVerified bool     `json:"isPhoneVerified"`
 	Roles           []string `json:"roles"`
-	SessionID       string   `json:"sessionID"`
+	SessionClaims
 }
 
 func init() {
@@ -58,28 +61,31 @@ func (j *AccessTokenManager) GenerateToken(user *model.User, sessionID string) (
 	}
 
 	claims := UserClaims{
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Unix() + accessTokenDuration,
-			Issuer:    tokenIssuer,
-			Audience:  tokenAudience,
-			IssuedAt:  time.Now().Unix(),
-			Subject:   user.ID.Hex(),
-		},
 		Username:        user.Username,
 		Email:           user.Email,
 		IsEmailVerified: user.IsEmailVerified,
 		IsPhoneVerified: user.IsPhoneVerified,
 
 		//TODO: Add roles
-		Roles:     []string{"user"},
-		SessionID: sessionID,
+		Roles: []string{"user"},
+		SessionClaims: SessionClaims{
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: time.Now().Unix() + accessTokenDuration,
+				Issuer:    tokenIssuer,
+				Audience:  tokenAudience,
+				IssuedAt:  time.Now().Unix(),
+				Subject:   user.ID.Hex(),
+			},
+
+			SessionID: sessionID,
+		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(j.secretKey))
 }
 
-func (j *AccessTokenManager) VerifyToken(tokenString string) (*UserClaims, error) {
+func (j *AccessTokenManager) GetClaims(tokenString string) (*UserClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
