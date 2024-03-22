@@ -46,7 +46,7 @@ type AutherClient interface {
 	Sessions(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*SessionsResponse, error)
 	Profile(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ProfileResponse, error)
 	SendSmsOTP(ctx context.Context, in *SendSmSOTPRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
-	VerifySmsOTP(ctx context.Context, in *VerifySmsOtpRequest, opts ...grpc.CallOption) (*SuccessResponse, error)
+	VerifySmsOTP(ctx context.Context, in *VerifySmsOtpRequest, opts ...grpc.CallOption) (*VerifySmsOtpResponse, error)
 	SendEmailOTP(ctx context.Context, in *SendEmailOTPRequest, opts ...grpc.CallOption) (*OTPValidationResponse, error)
 	VerifyEmailOTP(ctx context.Context, in *VerifyEmailOtpRequest, opts ...grpc.CallOption) (*OTPValidationResponse, error)
 }
@@ -140,8 +140,8 @@ func (c *autherClient) SendSmsOTP(ctx context.Context, in *SendSmSOTPRequest, op
 	return out, nil
 }
 
-func (c *autherClient) VerifySmsOTP(ctx context.Context, in *VerifySmsOtpRequest, opts ...grpc.CallOption) (*SuccessResponse, error) {
-	out := new(SuccessResponse)
+func (c *autherClient) VerifySmsOTP(ctx context.Context, in *VerifySmsOtpRequest, opts ...grpc.CallOption) (*VerifySmsOtpResponse, error) {
+	out := new(VerifySmsOtpResponse)
 	err := c.cc.Invoke(ctx, Auther_VerifySmsOTP_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -180,7 +180,7 @@ type AutherServer interface {
 	Sessions(context.Context, *Empty) (*SessionsResponse, error)
 	Profile(context.Context, *Empty) (*ProfileResponse, error)
 	SendSmsOTP(context.Context, *SendSmSOTPRequest) (*SuccessResponse, error)
-	VerifySmsOTP(context.Context, *VerifySmsOtpRequest) (*SuccessResponse, error)
+	VerifySmsOTP(context.Context, *VerifySmsOtpRequest) (*VerifySmsOtpResponse, error)
 	SendEmailOTP(context.Context, *SendEmailOTPRequest) (*OTPValidationResponse, error)
 	VerifyEmailOTP(context.Context, *VerifyEmailOtpRequest) (*OTPValidationResponse, error)
 	mustEmbedUnimplementedAutherServer()
@@ -217,7 +217,7 @@ func (UnimplementedAutherServer) Profile(context.Context, *Empty) (*ProfileRespo
 func (UnimplementedAutherServer) SendSmsOTP(context.Context, *SendSmSOTPRequest) (*SuccessResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendSmsOTP not implemented")
 }
-func (UnimplementedAutherServer) VerifySmsOTP(context.Context, *VerifySmsOtpRequest) (*SuccessResponse, error) {
+func (UnimplementedAutherServer) VerifySmsOTP(context.Context, *VerifySmsOtpRequest) (*VerifySmsOtpResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifySmsOTP not implemented")
 }
 func (UnimplementedAutherServer) SendEmailOTP(context.Context, *SendEmailOTPRequest) (*OTPValidationResponse, error) {

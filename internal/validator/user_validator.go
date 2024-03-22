@@ -62,3 +62,11 @@ func ValidateUsername(username string) error {
 
 	return nil
 }
+
+func ValidateOtp(otp string) error {
+	if err := ValidateString(otp, 6, 6); err != nil {
+		return err
+	}
+
+	return nil
+}

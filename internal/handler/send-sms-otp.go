@@ -9,6 +9,7 @@ import (
 	"github.com/ther0y/xeep-auth-service/internal/database"
 	"github.com/ther0y/xeep-auth-service/internal/errors"
 	"github.com/ther0y/xeep-auth-service/internal/services"
+	"github.com/ther0y/xeep-auth-service/internal/utils"
 	"github.com/ther0y/xeep-auth-service/internal/validator"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"math/rand"
@@ -23,14 +24,15 @@ func (s *Service) SendSmsOTP(ctx context.Context, req *auther.SendSmSOTPRequest)
 
 	smsService := services.NewSmsService()
 
+	normalizedPhone := utils.NormalizePhone(req.GetPhone())
 	otpCode := generateOtp()
 	hashedOtpCode := hashOtp(otpCode)
 
-	if err := smsService.SendSmsOtp(req.Phone, otpCode); err != nil {
+	if err := smsService.SendSmsOtp(normalizedPhone, otpCode); err != nil {
 		return nil, err
 	}
 
-	if err := database.StoreHashedSmsOtp(req.Phone, hashedOtpCode); err != nil {
+	if err := database.StoreHashedSmsOtp(normalizedPhone, hashedOtpCode); err != nil {
 		return nil, errors.InternalError("Failed to save the OTP", err)
 	}
 

@@ -75,6 +75,11 @@ message VerifySmsOtpRequest {
   string otp = 2;
 }
 
+message VerifySmsOtpResponse {
+  string validationKey = 1;
+  bool success = 2;
+}
+
 message VerifyEmailOtpRequest {
   string email = 1;
   string otp = 2;
@@ -107,7 +112,7 @@ service Auther {
   rpc Profile(Empty) returns (ProfileResponse);
 
   rpc SendSmsOTP(SendSmSOTPRequest) returns (SuccessResponse);
-  rpc VerifySmsOTP(VerifySmsOtpRequest) returns (SuccessResponse);
+  rpc VerifySmsOTP(VerifySmsOtpRequest) returns (VerifySmsOtpResponse);
 
   rpc SendEmailOTP(SendEmailOTPRequest) returns (OTPValidationResponse);
   rpc VerifyEmailOTP(VerifyEmailOtpRequest) returns (OTPValidationResponse);
