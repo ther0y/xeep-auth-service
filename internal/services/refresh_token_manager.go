@@ -5,10 +5,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/ther0y/xeep-auth-service/internal/database"
-	"github.com/ther0y/xeep-auth-service/internal/utils"
 	"os"
 	"time"
+
+	"github.com/ther0y/xeep-auth-service/internal/database"
+	"github.com/ther0y/xeep-auth-service/internal/utils"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
