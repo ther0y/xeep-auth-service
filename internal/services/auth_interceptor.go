@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ther0y/xeep-auth-service/internal/model"
+	"github.com/ther0y/xeep-auth-service/internal/utils"
 	"time"
 
 	"github.com/ther0y/xeep-auth-service/internal/database"
@@ -83,12 +84,21 @@ func (a *AuthInterceptor) authorize(ctx *context.Context, method string) (err er
 		return status.Error(codes.Unauthenticated, "access token is expired")
 	}
 
-	// TODO: Add issuer and audience to env
-	if claims.Issuer != "xeep-auth-service" {
+	allowedIssuer, err := utils.GetEnv("TOKEN_ISSUER")
+	if err != nil {
+		return status.Error(codes.Internal, fmt.Errorf("failed to get access token issuer from env: %w", err).Error())
+	}
+
+	if claims.Issuer != allowedIssuer {
 		return status.Error(codes.Unauthenticated, "access token is invalid")
 	}
 
-	if claims.Audience != "xeep-auth-service" {
+	allowedAudience, err := utils.GetEnv("TOKEN_AUDIENCE")
+	if err != nil {
+		return status.Error(codes.Internal, fmt.Errorf("failed to get access token audience from env: %w", err).Error())
+	}
+
+	if claims.Audience != allowedAudience {
 		return status.Error(codes.Unauthenticated, "access token is invalid")
 	}
 

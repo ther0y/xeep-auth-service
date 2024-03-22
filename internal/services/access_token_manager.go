@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"github.com/ther0y/xeep-auth-service/internal/utils"
 	"os"
 	"time"
 
@@ -46,11 +47,21 @@ func init() {
 }
 
 func (j *AccessTokenManager) GenerateToken(user *model.User, sessionID string) (string, error) {
+	tokenIssuer, err := utils.GetEnv("TOKEN_ISSUER")
+	if err != nil {
+		return "", fmt.Errorf("failed to get token issuer: %w", err)
+	}
+
+	tokenAudience, err := utils.GetEnv("TOKEN_AUDIENCE")
+	if err != nil {
+		return "", fmt.Errorf("failed to get token audience: %w", err)
+	}
+
 	claims := UserClaims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Unix() + accessTokenDuration,
-			Issuer:    "xeep-auth-service",
-			Audience:  "xeep-auth-service",
+			Issuer:    tokenIssuer,
+			Audience:  tokenAudience,
 			IssuedAt:  time.Now().Unix(),
 			Subject:   user.ID.Hex(),
 		},

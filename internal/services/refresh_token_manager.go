@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ther0y/xeep-auth-service/internal/database"
+	"github.com/ther0y/xeep-auth-service/internal/utils"
 	"os"
 	"time"
 
@@ -63,11 +64,21 @@ func (r *RefreshTokenManager) GenerateToken(user *model.User, sessionID string) 
 	// Get the revision number from redis or store 1 if it doesn't exist
 	currentRevision, err := database.GetSessionsLatestRevision(sessionID)
 
+	tokenIssuer, err := utils.GetEnv("TOKEN_ISSUER")
+	if err != nil {
+		return refreshTokenData, fmt.Errorf("failed to get token issuer: %w", err)
+	}
+
+	tokenAudience, err := utils.GetEnv("TOKEN_AUDIENCE")
+	if err != nil {
+		return refreshTokenData, fmt.Errorf("failed to get token audience: %w", err)
+	}
+
 	claims := RefreshTokenClaims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Unix() + refreshTokenDuration,
-			Issuer:    "xeep-auth-service",
-			Audience:  "xeep-auth-service",
+			Issuer:    tokenIssuer,
+			Audience:  tokenAudience,
 			IssuedAt:  time.Now().Unix(),
 			Subject:   user.ID.Hex(),
 			Id:        refreshTokenID,
