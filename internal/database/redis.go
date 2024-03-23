@@ -106,3 +106,24 @@ func StoreOtpValidationKey(phone string, validationKey string) error {
 
 	return AddToRedis(key, validationKey, time.Hour*2)
 }
+
+func IsOtpValidated(phone string, key string) (bool, error) {
+	redisKey := "otp:sms:validation:" + phone
+
+	validationKey, err := GetFromRedis(redisKey)
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return validationKey == key, nil
+}
+
+func DeleteOtpValidationKey(phone string) error {
+	key := "otp:sms:validation:" + phone
+
+	return DeleteFromRedis(key)
+}

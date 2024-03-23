@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"github.com/ther0y/xeep-auth-service/internal/database"
 	"github.com/ther0y/xeep-auth-service/internal/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
@@ -28,6 +29,16 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 	}
 
 	normalizedPhone := utils.NormalizePhone(req.Phone)
+
+	ok, err := database.IsOtpValidated(normalizedPhone, req.OtpValidationKey)
+	if err != nil {
+		return nil, errors.InternalError("Failed to validate the OTP", err)
+	}
+
+	if !ok {
+		return nil, errors.UnauthenticatedError("Invalid OTP")
+	}
+
 	passwordHash, salt := utils.HashPassword(req.Password)
 
 	newUser = &model.User{
@@ -41,7 +52,7 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 		UpdatedAt: time.Now().Unix(),
 	}
 
-	err := newUser.Save()
+	err = newUser.Save()
 	if err != nil {
 		if err.Error() == "mongo: no documents in result" {
 			return nil, errors.InternalError("Failed to create user", err)
@@ -60,6 +71,10 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 		return nil, errors.InternalError("Failed to generate the tokens", err)
 	}
 
+	if err := database.DeleteOtpValidationKey(normalizedPhone); err != nil {
+		return nil, errors.InternalError("Failed to delete the OTP validation key", err)
+	}
+
 	return &auther.AuthenticationData{
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken,
@@ -68,6 +83,10 @@ func (s *Service) Register(ctx context.Context, req *auther.RegisterRequest) (*a
 }
 
 func validateRegisterRequest(req *auther.RegisterRequest) (violations []*errdetails.BadRequest_FieldViolation) {
+	if req.GetOtpValidationKey() == "" {
+		violations = append(violations, errors.FieldViolation("otp_validation_key", errors.RequiredField()))
+	}
+
 	if err := validator.ValidateUsername(req.GetUsername()); err != nil {
 		violations = append(violations, errors.FieldViolation("username", err))
 	}

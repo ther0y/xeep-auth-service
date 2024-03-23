@@ -36,3 +36,7 @@ func InternalError(msg string, err error) error {
 func AlreadyExistsError(field string) error {
 	return status.Error(codes.AlreadyExists, fmt.Sprintf("%s already exists", field))
 }
+
+func RequiredField() error {
+	return status.Error(codes.InvalidArgument, "required field")
+}

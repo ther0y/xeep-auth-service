@@ -51,7 +51,7 @@ message RegisterRequest {
   string password = 2;
   string phone = 3;
   string email = 4;
-  string otpValidationId = 5;
+  string otpValidationKey = 5;
 }
 
 message SessionsResponse {
